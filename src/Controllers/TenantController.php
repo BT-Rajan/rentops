@@ -34,12 +34,15 @@ class TenantController extends BaseController
                    te.id AS tenancy_id,
                    COALESCE((SELECT SUM(amount_due) - SUM(amount_paid)
                               FROM rent_invoices
-                              WHERE tenancy_id = te.id AND status != 'paid'), 0) AS outstanding
+                              WHERE tenancy_id = te.id AND status != 'paid'), 0) AS outstanding,
+                   COALESCE((SELECT COUNT(*)
+                              FROM rent_invoices
+                              WHERE tenancy_id = te.id AND status = 'overdue'), 0) AS overdue_count
             FROM tenants t
             LEFT JOIN tenancies te ON te.tenant_id = t.id AND te.status = 'active'
             LEFT JOIN rooms r      ON r.id = te.room_id
             {$where}
-            ORDER BY t.full_name
+            ORDER BY overdue_count DESC, t.full_name
         ", $bind);
 
         $this->render('tenants/index', [

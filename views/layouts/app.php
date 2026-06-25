@@ -58,6 +58,10 @@
       </a>
 
       <span class="nav-section-label">System</span>
+      <a href="/audit" class="nav-item <?= str_starts_with($cur, '/audit') ? 'active' : '' ?>">
+        <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11"/></svg>
+        Audit & QA
+      </a>
       <a href="/import" class="nav-item <?= str_starts_with($cur, '/import') ? 'active' : '' ?>">
         <svg class="nav-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
         Import Data

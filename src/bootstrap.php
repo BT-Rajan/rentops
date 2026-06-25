@@ -11,6 +11,9 @@ spl_autoload_register(function (string $class): void {
     if (file_exists($file)) require $file;
 });
 
+// Error handling
+require ROOT . '/src/error_handler.php';
+
 // Config
 $config = require ROOT . '/src/config.php';
 

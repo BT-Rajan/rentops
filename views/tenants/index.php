@@ -50,6 +50,9 @@
           <td>
             <?php if ($outstanding > 0): ?>
               <span class="text-danger fw-600">₹<?= number_format($outstanding) ?></span>
+              <?php if ((int)$t['overdue_count'] > 0): ?>
+                <div class="text-xs text-danger"><?= (int)$t['overdue_count'] ?> month<?= $t['overdue_count'] > 1 ? 's' : '' ?> overdue</div>
+              <?php endif; ?>
             <?php elseif ($t['tenancy_id']): ?>
               <span class="text-success">₹0</span>
             <?php else: ?>

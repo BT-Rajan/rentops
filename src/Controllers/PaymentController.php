@@ -5,6 +5,7 @@ namespace App\Controllers;
 
 use App\DB;
 use App\Helpers\RentEngine;
+use App\Helpers\AuditLog;
 
 class PaymentController extends BaseController
 {
@@ -79,6 +80,13 @@ class PaymentController extends BaseController
             ]);
 
             (new RentEngine())->updateInvoiceStatus($invoiceId, $overpayment);
+
+            AuditLog::record('payment_recorded', 'payment', null, [
+                'invoice_id' => $invoiceId,
+                'amount'     => $amount,
+                'mode'       => $_POST['mode'],
+                'overpayment'=> $overpayment,
+            ]);
 
             DB::commit();
             $msg = 'Payment of ₹' . number_format($amount) . ' recorded.';

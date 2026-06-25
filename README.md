@@ -78,6 +78,6 @@ rentops/
 
 ## Phase roadmap
 - [x] **Phase 1** — Foundation: DB, auth, routing, design system, all controllers & views
-- [ ] **Phase 2** — Data migration: import existing 22 tenants from spreadsheet
-- [ ] **Phase 3** — QA: edge cases, overdue logic, pro-rata testing
-- [ ] **Phase 4** — Hardening: rate limiting, file upload for ID proofs, WhatsApp API
+- [x] **Phase 2** — Data migration: CSV import, file uploads, payment receipts, rent changes
+- [x] **Phase 3** — QA & hardening: RentEngine edge cases, rate limiting, audit log, error handling
+- [ ] **Phase 4** — Production polish: password change UI, email notifications, WhatsApp API

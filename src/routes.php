@@ -15,6 +15,7 @@ use App\Controllers\UploadController;
 use App\Controllers\TemplateController;
 use App\Middleware\AuthMiddleware;
 
+use App\Controllers\AuditController;
 use App\Controllers\RentChangeController;
 
 $auth = [AuthMiddleware::class];
@@ -69,6 +70,11 @@ $router->get('/reports/export',             [ReportController::class, 'export'],
 // Settings
 $router->get('/settings',                   [SettingsController::class, 'index'],    $auth);
 $router->post('/settings',                  [SettingsController::class, 'update'],   $auth);
+
+// Audit & QA
+$router->get('/audit',          [AuditController::class, 'index'], $auth);
+$router->post('/audit/fix',     [AuditController::class, 'fix'],   $auth);
+$router->get('/audit/log',      [AuditController::class, 'log'],   $auth);
 
 // Rent changes (mid-tenancy)
 $router->post('/tenancies/{tenancy_id}/rent-change', [RentChangeController::class, 'store'], $auth);

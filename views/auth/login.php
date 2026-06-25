@@ -2,7 +2,12 @@
   <h2>Sign in</h2>
 
   <?php if ($error): ?>
-    <div class="flash flash-error" style="margin-bottom:20px"><?= htmlspecialchars($error) ?></div>
+    <div class="flash flash-error" style="margin-bottom:20px">
+      <?= htmlspecialchars($error) ?>
+      <?php if ($remaining !== null && $remaining > 0): ?>
+        <div class="text-xs mt-4"><?= $remaining ?> attempt<?= $remaining !== 1 ? 's' : '' ?> remaining before lockout.</div>
+      <?php endif; ?>
+    </div>
   <?php endif; ?>
 
   <form action="/login" method="POST" novalidate>
