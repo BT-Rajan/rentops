@@ -1,0 +1,133 @@
+<?php
+$initials = implode('', array_map(fn($w) => strtoupper($w[0]), array_slice(explode(' ', $tenant['full_name']), 0, 2)));
+$invMap   = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid'=>'muted'];
+?>
+
+<div style="margin-bottom:20px">
+  <a href="/tenants" class="btn btn-ghost btn-sm" style="padding-left:0">← Back to tenants</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 2fr;gap:20px;align-items:start" class="tenant-detail-grid">
+
+  <!-- Left: profile + actions -->
+  <div>
+    <!-- Profile card -->
+    <div class="card mb-16">
+      <div class="card-body" style="text-align:center;padding:28px 20px">
+        <div class="avatar" style="width:64px;height:64px;font-size:22px;margin:0 auto 12px">
+          <?= htmlspecialchars($initials) ?>
+        </div>
+        <div class="fw-700" style="font-size:18px"><?= htmlspecialchars($tenant['full_name']) ?></div>
+        <div class="text-sm text-muted mt-4"><?= htmlspecialchars($tenant['phone']) ?></div>
+        <?php if ($tenant['email']): ?>
+          <div class="text-sm text-muted"><?= htmlspecialchars($tenant['email']) ?></div>
+        <?php endif; ?>
+        <div class="mt-8">
+          <span class="badge badge-<?= $tenant['status'] === 'active' ? 'success' : 'muted' ?>">
+            <?= ucfirst($tenant['status']) ?>
+          </span>
+        </div>
+      </div>
+      <div class="card-body" style="border-top:1px solid var(--border);padding:16px 20px">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <div class="d-flex justify-between">
+            <span class="text-sm text-muted">ID proof</span>
+            <span class="text-sm fw-600"><?= htmlspecialchars($tenant['id_proof_type']) ?></span>
+          </div>
+          <?php if ($tenant['id_proof_number']): ?>
+          <div class="d-flex justify-between">
+            <span class="text-sm text-muted">ID number</span>
+            <span class="text-sm"><?= htmlspecialchars($tenant['id_proof_number']) ?></span>
+          </div>
+          <?php endif; ?>
+          <?php if ($tenant['emergency_contact']): ?>
+          <div class="d-flex justify-between">
+            <span class="text-sm text-muted">Emergency</span>
+            <span class="text-sm"><?= htmlspecialchars($tenant['emergency_contact']) ?></span>
+          </div>
+          <?php endif; ?>
+          <?php if ($activeTenancy): ?>
+          <div class="d-flex justify-between">
+            <span class="text-sm text-muted">Room</span>
+            <a href="/rooms/<?= htmlspecialchars($activeTenancy['room_id']) ?>" class="text-sm fw-600">Room <?= htmlspecialchars($activeTenancy['room_number']) ?></a>
+          </div>
+          <div class="d-flex justify-between">
+            <span class="text-sm text-muted">Agreed rent</span>
+            <span class="text-sm fw-600 text-primary-color">₹<?= number_format((float)$activeTenancy['agreed_rent']) ?></span>
+          </div>
+          <div class="d-flex justify-between">
+            <span class="text-sm text-muted">Deposit</span>
+            <span class="text-sm">₹<?= number_format((float)$activeTenancy['security_deposit']) ?></span>
+          </div>
+          <div class="d-flex justify-between">
+            <span class="text-sm text-muted">Move-in</span>
+            <span class="text-sm"><?= htmlspecialchars($activeTenancy['move_in_date']) ?></span>
+          </div>
+          <div class="d-flex justify-between">
+            <span class="text-sm text-muted">Due day</span>
+            <span class="text-sm">Day <?= htmlspecialchars($activeTenancy['rent_due_day']) ?> of month</span>
+          </div>
+          <?php endif; ?>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action buttons -->
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <?php if ($activeTenancy): ?>
+        <a href="/payments/new?invoice_id=" class="btn btn-primary" style="justify-content:center">Record Payment</a>
+        <a href="/tenants/<?= htmlspecialchars($tenant['id']) ?>/moveout" class="btn btn-secondary" style="justify-content:center">Process Move-out</a>
+      <?php elseif ($tenant['status'] === 'active'): ?>
+        <a href="/tenants/<?= htmlspecialchars($tenant['id']) ?>/movein" class="btn btn-primary" style="justify-content:center">Assign Room</a>
+      <?php endif; ?>
+      <a href="/reminders?highlight=<?= htmlspecialchars($tenant['id']) ?>" class="btn btn-secondary" style="justify-content:center">Send Reminder</a>
+    </div>
+  </div>
+
+  <!-- Right: invoices -->
+  <div class="card">
+    <div class="card-header">
+      <span class="card-title">Invoice history</span>
+      <?php if ($activeTenancy): ?>
+        <a href="/payments/new" class="btn btn-primary btn-sm">+ Record Payment</a>
+      <?php endif; ?>
+    </div>
+    <?php if ($invoices): ?>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th>Period</th><th>Amount due</th><th>Paid</th><th>Balance</th><th>Status</th><th>Mode</th><th></th></tr>
+        </thead>
+        <tbody>
+          <?php foreach ($invoices as $inv): ?>
+          <?php $bal = (float)$inv['amount_due'] - (float)$inv['amount_paid']; ?>
+          <tr>
+            <td class="fw-600"><?= date('M Y', strtotime($inv['period_month'])) ?></td>
+            <td>₹<?= number_format((float)$inv['amount_due']) ?></td>
+            <td class="text-success fw-600">₹<?= number_format((float)$inv['amount_paid']) ?></td>
+            <td class="<?= $bal > 0 ? 'text-danger' : '' ?> fw-600">₹<?= number_format($bal) ?></td>
+            <td><span class="badge badge-<?= $invMap[$inv['status']] ?? 'muted' ?>"><?= ucfirst($inv['status']) ?></span></td>
+            <td class="text-sm text-muted"><?= htmlspecialchars($inv['modes'] ?? '—') ?></td>
+            <td>
+              <?php if ($inv['status'] !== 'paid'): ?>
+                <a href="/payments/new?invoice_id=<?= htmlspecialchars($inv['id']) ?>" class="btn btn-primary btn-sm">Pay</a>
+              <?php endif; ?>
+            </td>
+          </tr>
+          <?php endforeach; ?>
+        </tbody>
+      </table>
+    </div>
+    <?php else: ?>
+    <div class="empty-state">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>
+      <p>No invoices yet.</p>
+    </div>
+    <?php endif; ?>
+  </div>
+
+</div>
+
+<style>
+@media(max-width:768px) { .tenant-detail-grid { grid-template-columns: 1fr !important; } }
+</style>
