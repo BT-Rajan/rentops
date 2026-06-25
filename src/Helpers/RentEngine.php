@@ -32,6 +32,27 @@ class RentEngine
     }
 
     /**
+     * Generate invoice for a single tenancy for a given month.
+     * Used for backfill during import. Idempotent.
+     */
+    public function generateMonthlyInvoicesForTenancy(string $tenancyId, string $yearMonth): bool
+    {
+        $tenancy = DB::row('SELECT * FROM tenancies WHERE id = ?', [$tenancyId]);
+        if (!$tenancy || $tenancy['status'] !== 'active') return false;
+
+        $period = new \DateTimeImmutable("{$yearMonth}-01");
+        $exists = DB::scalar(
+            'SELECT COUNT(*) FROM rent_invoices WHERE tenancy_id = ? AND period_month = ?',
+            [$tenancyId, $period->format('Y-m-d')]
+        );
+        if ($exists) return false;
+
+        $dueDate = $this->dueDate($period, (int)$tenancy['rent_due_day']);
+        $this->createInvoice($tenancyId, $period, (float)$tenancy['agreed_rent'], $dueDate);
+        return true;
+    }
+
+    /**
      * Generate invoices for ALL active tenancies for a given month.
      * Idempotent — skips if invoice already exists.
      */
@@ -127,7 +148,7 @@ class RentEngine
     /**
      * Update invoice status after a payment is recorded.
      */
-    public function updateInvoiceStatus(string $invoiceId): void
+    public function updateInvoiceStatus(string $invoiceId, float $overpayment = 0): void
     {
         $invoice = DB::row('SELECT * FROM rent_invoices WHERE id = ?', [$invoiceId]);
         if (!$invoice) return;
@@ -135,7 +156,11 @@ class RentEngine
         $paid   = (float)DB::scalar('SELECT COALESCE(SUM(amount), 0) FROM payments WHERE invoice_id = ?', [$invoiceId]);
         $status = $this->resolveStatus((float)$invoice['amount_due'], $paid);
 
-        DB::update('rent_invoices', ['amount_paid' => $paid, 'status' => $status], 'id = ?', [$invoiceId]);
+        DB::update('rent_invoices', [
+            'amount_paid' => $paid,
+            'overpayment' => $overpayment,
+            'status'      => $status,
+        ], 'id = ?', [$invoiceId]);
     }
 
     // ─── Pro-rata helpers ──────────────────────────────────────────────────────
@@ -193,12 +218,6 @@ class RentEngine
 
     private function uuid(): string
     {
-        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0x0fff) | 0x4000,
-            mt_rand(0, 0x3fff) | 0x8000,
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
-        );
+        return \App\Helpers\UuidHelper::v4();
     }
 }

@@ -60,6 +60,11 @@ class PaymentController extends BaseController
         $invoice = DB::row('SELECT * FROM rent_invoices WHERE id = ?', [$invoiceId]);
         if (!$invoice) { $this->redirect('/payments/new', 'Invoice not found.', 'error'); return; }
 
+        // Overpayment guard
+        $currentPaid = (float)$invoice['amount_paid'];
+        $due         = (float)$invoice['amount_due'];
+        $overpayment = max(0, ($currentPaid + $amount) - $due);
+
         DB::beginTransaction();
         try {
             DB::insert('payments', [
@@ -73,10 +78,14 @@ class PaymentController extends BaseController
                 'created_at'   => date('Y-m-d H:i:s'),
             ]);
 
-            (new RentEngine())->updateInvoiceStatus($invoiceId);
+            (new RentEngine())->updateInvoiceStatus($invoiceId, $overpayment);
 
             DB::commit();
-            $this->redirect('/dues', 'Payment of ₹' . number_format($amount) . ' recorded.');
+            $msg = 'Payment of ₹' . number_format($amount) . ' recorded.';
+            if ($overpayment > 0) {
+                $msg .= ' ⚠ Overpayment of ₹' . number_format($overpayment) . ' — please verify.';
+            }
+            $this->redirect('/dues', $msg);
         } catch (\Throwable $e) {
             DB::rollback();
             $this->redirect('/payments/new', 'Payment failed: ' . $e->getMessage(), 'error');
@@ -107,12 +116,6 @@ class PaymentController extends BaseController
 
     private function uuid(): string
     {
-        return sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff),
-            mt_rand(0, 0xffff),
-            mt_rand(0, 0x0fff) | 0x4000,
-            mt_rand(0, 0x3fff) | 0x8000,
-            mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
-        );
+        return \App\Helpers\UuidHelper::v4();
     }
 }

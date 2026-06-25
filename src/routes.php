@@ -10,7 +10,12 @@ use App\Controllers\DuesController;
 use App\Controllers\ReminderController;
 use App\Controllers\ReportController;
 use App\Controllers\SettingsController;
+use App\Controllers\ImportController;
+use App\Controllers\UploadController;
+use App\Controllers\TemplateController;
 use App\Middleware\AuthMiddleware;
+
+use App\Controllers\RentChangeController;
 
 $auth = [AuthMiddleware::class];
 
@@ -30,15 +35,19 @@ $router->get('/rooms/{id}',                 [RoomController::class, 'show'],    
 $router->post('/rooms/{id}',                [RoomController::class, 'update'],  $auth);
 
 // Tenants
-$router->get('/tenants',                    [TenantController::class, 'index'],      $auth);
-$router->get('/tenants/new',                [TenantController::class, 'create'],     $auth);
-$router->post('/tenants/new',               [TenantController::class, 'store'],      $auth);
-$router->get('/tenants/{id}',               [TenantController::class, 'show'],       $auth);
-$router->post('/tenants/{id}',              [TenantController::class, 'update'],     $auth);
-$router->get('/tenants/{id}/movein',        [TenantController::class, 'moveInForm'], $auth);
-$router->post('/tenants/{id}/movein',       [TenantController::class, 'moveIn'],     $auth);
-$router->get('/tenants/{id}/moveout',       [TenantController::class, 'moveOutForm'],$auth);
-$router->post('/tenants/{id}/moveout',      [TenantController::class, 'moveOut'],    $auth);
+$router->get('/tenants',                    [TenantController::class, 'index'],       $auth);
+$router->get('/tenants/new',                [TenantController::class, 'create'],      $auth);
+$router->post('/tenants/new',               [TenantController::class, 'store'],       $auth);
+$router->get('/tenants/{id}',               [TenantController::class, 'show'],        $auth);
+$router->post('/tenants/{id}',              [TenantController::class, 'update'],      $auth);
+$router->get('/tenants/{id}/movein',        [TenantController::class, 'moveInForm'],  $auth);
+$router->post('/tenants/{id}/movein',       [TenantController::class, 'moveIn'],      $auth);
+$router->get('/tenants/{id}/moveout',       [TenantController::class, 'moveOutForm'], $auth);
+$router->post('/tenants/{id}/moveout',      [TenantController::class, 'moveOut'],     $auth);
+
+// Tenant file uploads
+$router->post('/tenants/{id}/upload-proof', [UploadController::class, 'uploadIdProof'], $auth);
+$router->post('/tenants/{id}/delete-proof', [UploadController::class, 'deleteIdProof'], $auth);
 
 // Payments
 $router->get('/payments/new',               [PaymentController::class, 'create'],    $auth);
@@ -60,3 +69,12 @@ $router->get('/reports/export',             [ReportController::class, 'export'],
 // Settings
 $router->get('/settings',                   [SettingsController::class, 'index'],    $auth);
 $router->post('/settings',                  [SettingsController::class, 'update'],   $auth);
+
+// Rent changes (mid-tenancy)
+$router->post('/tenancies/{tenancy_id}/rent-change', [RentChangeController::class, 'store'], $auth);
+
+// Import
+$router->get('/import',                     [ImportController::class, 'index'],      $auth);
+$router->post('/import/preview',            [ImportController::class, 'preview'],    $auth);
+$router->post('/import/confirm',            [ImportController::class, 'confirm'],    $auth);
+$router->get('/import/template',            [TemplateController::class, 'csvTemplate'], $auth);

@@ -1,0 +1,234 @@
+<?php
+declare(strict_types=1);
+
+namespace App\Controllers;
+
+use App\DB;
+use App\Helpers\RentEngine;
+use App\Helpers\UuidHelper;
+
+class ImportController extends BaseController
+{
+    private const REQUIRED_COLS = ['full_name', 'phone', 'room_number', 'move_in_date', 'agreed_rent', 'security_deposit'];
+
+    public function index(array $params = []): void
+    {
+        $this->render('import/index', [
+            'pageTitle' => 'Bulk Import',
+            'flash'     => $this->flash(),
+            'user'      => $this->currentUser(),
+            'csrf'      => $this->csrfToken(),
+        ]);
+    }
+
+    public function preview(array $params = []): void
+    {
+        $this->verifyCsrf();
+        $parsed = $this->parseCsv();
+        if (isset($parsed['error'])) {
+            $this->redirect('/import', $parsed['error'], 'error');
+            return;
+        }
+
+        // Dry-run: validate each row without writing
+        $rows   = $parsed['rows'];
+        $errors = [];
+        $valid  = [];
+
+        foreach ($rows as $i => $row) {
+            $rowNum = $i + 2; // 1-indexed + header
+            $e      = $this->validateRow($row, $rowNum);
+            if ($e) {
+                $errors[] = $e;
+            } else {
+                $valid[] = $row;
+            }
+        }
+
+        // Store validated rows in session for confirm step
+        $_SESSION['import_rows']   = $valid;
+        $_SESSION['import_errors'] = $errors;
+
+        $this->render('import/preview', [
+            'pageTitle' => 'Import Preview',
+            'valid'     => $valid,
+            'errors'    => $errors,
+            'user'      => $this->currentUser(),
+            'csrf'      => $this->csrfToken(),
+        ]);
+    }
+
+    public function confirm(array $params = []): void
+    {
+        $this->verifyCsrf();
+
+        $rows = $_SESSION['import_rows'] ?? [];
+        if (empty($rows)) {
+            $this->redirect('/import', 'No rows to import. Upload CSV again.', 'error');
+            return;
+        }
+
+        $imported = 0;
+        $skipped  = 0;
+        $failLog  = [];
+
+        DB::beginTransaction();
+        try {
+            foreach ($rows as $row) {
+                $result = $this->importRow($row);
+                if ($result === 'imported') $imported++;
+                elseif ($result === 'skipped') $skipped++;
+                else $failLog[] = $result;
+            }
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollback();
+            $this->redirect('/import', 'Import failed: ' . $e->getMessage(), 'error');
+            return;
+        }
+
+        unset($_SESSION['import_rows'], $_SESSION['import_errors']);
+
+        $msg = "Import complete — {$imported} imported, {$skipped} skipped (already exist).";
+        if ($failLog) $msg .= ' ' . count($failLog) . ' rows had errors.';
+
+        $this->redirect('/tenants', $msg);
+    }
+
+    // ─── Private helpers ───────────────────────────────────────────────────────
+
+    private function parseCsv(): array
+    {
+        if (empty($_FILES['csv']['tmp_name'])) {
+            return ['error' => 'No file uploaded.'];
+        }
+
+        $fh = fopen($_FILES['csv']['tmp_name'], 'r');
+        if (!$fh) return ['error' => 'Could not read uploaded file.'];
+
+        $header = fgetcsv($fh);
+        if (!$header) { fclose($fh); return ['error' => 'CSV appears empty.']; }
+
+        // Normalise header keys
+        $header = array_map(fn($h) => strtolower(trim(str_replace([' ', '-'], '_', $h))), $header);
+
+        // Check required columns
+        $missing = array_diff(self::REQUIRED_COLS, $header);
+        if ($missing) {
+            fclose($fh);
+            return ['error' => 'Missing columns: ' . implode(', ', $missing)];
+        }
+
+        $rows = [];
+        while (($line = fgetcsv($fh)) !== false) {
+            if (count($line) === count($header)) {
+                $row = array_combine($header, $line);
+                if (array_filter($row)) $rows[] = array_map('trim', $row); // skip blank rows
+            }
+        }
+        fclose($fh);
+
+        if (empty($rows)) return ['error' => 'CSV has no data rows.'];
+
+        return ['rows' => $rows];
+    }
+
+    private function validateRow(array $row, int $rowNum): ?string
+    {
+        foreach (self::REQUIRED_COLS as $col) {
+            if (empty($row[$col])) {
+                return "Row {$rowNum}: missing '{$col}'.";
+            }
+        }
+
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $row['move_in_date'])) {
+            return "Row {$rowNum}: move_in_date must be YYYY-MM-DD (got '{$row['move_in_date']}').";
+        }
+
+        if (!is_numeric($row['agreed_rent']) || (float)$row['agreed_rent'] <= 0) {
+            return "Row {$rowNum}: agreed_rent must be a positive number.";
+        }
+
+        $room = DB::row('SELECT id FROM rooms WHERE room_number = ?', [$row['room_number']]);
+        if (!$room) {
+            return "Row {$rowNum}: room '{$row['room_number']}' not found.";
+        }
+
+        return null;
+    }
+
+    private function importRow(array $row): string
+    {
+        // Check if tenant with same phone already exists
+        $existing = DB::row('SELECT id FROM tenants WHERE phone = ?', [$row['phone']]);
+        $tenantId = $existing ? $existing['id'] : UuidHelper::v4();
+
+        if (!$existing) {
+            DB::insert('tenants', [
+                'id'                => $tenantId,
+                'full_name'         => $row['full_name'],
+                'phone'             => $row['phone'],
+                'email'             => $row['email']             ?? '',
+                'id_proof_type'     => $row['id_proof_type']     ?? 'Aadhaar',
+                'id_proof_number'   => $row['id_proof_number']   ?? '',
+                'emergency_contact' => $row['emergency_contact'] ?? '',
+                'status'            => 'active',
+                'created_at'        => date('Y-m-d H:i:s'),
+            ]);
+        }
+
+        $room = DB::row('SELECT * FROM rooms WHERE room_number = ?', [$row['room_number']]);
+
+        // Skip if active tenancy already exists for this tenant+room
+        $activeTenancy = DB::row(
+            "SELECT id FROM tenancies WHERE tenant_id = ? AND room_id = ? AND status = 'active'",
+            [$tenantId, $room['id']]
+        );
+        if ($activeTenancy) return 'skipped';
+
+        $tenancyId = UuidHelper::v4();
+        $dueDay    = (int)($row['rent_due_day'] ?? 5);
+
+        DB::insert('tenancies', [
+            'id'               => $tenancyId,
+            'tenant_id'        => $tenantId,
+            'room_id'          => $room['id'],
+            'move_in_date'     => $row['move_in_date'],
+            'move_out_date'    => null,
+            'agreed_rent'      => (float)$row['agreed_rent'],
+            'security_deposit' => (float)($row['security_deposit'] ?? 0),
+            'rent_due_day'     => $dueDay,
+            'status'           => 'active',
+            'created_at'       => date('Y-m-d H:i:s'),
+        ]);
+
+        // Update room status
+        $newStatus = in_array($room['room_type'], ['sharing', 'dorm']) ? 'partially_occupied' : 'occupied';
+        DB::update('rooms', ['status' => $newStatus], 'id = ?', [$room['id']]);
+
+        // Generate first invoice (pro-rata)
+        (new RentEngine())->generateFirstInvoice($tenancyId);
+
+        // Generate invoices for any past months up to current month
+        $this->backfillInvoices($tenancyId, $row['move_in_date'], (int)$dueDay);
+
+        return 'imported';
+    }
+
+    /**
+     * Generate invoices for every full month between move_in and now,
+     * so historical data is complete. Skips if already exists (idempotent).
+     */
+    private function backfillInvoices(string $tenancyId, string $moveInDate, int $dueDay): void
+    {
+        $engine   = new RentEngine();
+        $start    = new \DateTimeImmutable(date('Y-m-01', strtotime($moveInDate)));
+        $start    = $start->modify('+1 month'); // first month handled by generateFirstInvoice
+        $current  = new \DateTimeImmutable(date('Y-m-01'));
+
+        while ($start <= $current) {
+            $engine->generateMonthlyInvoicesForTenancy($tenancyId, $start->format('Y-m'));
+            $start = $start->modify('+1 month');
+        }
+    }
+}
