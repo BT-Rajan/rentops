@@ -45,14 +45,20 @@ class RentChangeController extends BaseController
             // Update tenancy agreed_rent
             DB::update('tenancies', ['agreed_rent' => $newRent], 'id = ?', [$tenancyId]);
 
-            // Update any UNPAID future invoices for this tenancy
+            // Update any UNPAID/PARTIAL invoices from the effective month onwards.
+            // FIX B07: period_month is stored as YYYY-MM-01 (always the 1st), but
+            // effective_from can be any day within the month (e.g. 2025-06-10).
+            // The old comparison `period_month >= '2025-06-10'` evaluated to false
+            // for the June invoice stored as '2025-06-01', so the current month was
+            // never updated even when the change was effective this month.
+            // Fix: truncate both sides to YYYY-MM for the comparison.
             DB::query("
                 UPDATE rent_invoices
                 SET amount_due = ?
                 WHERE tenancy_id = ?
                   AND status IN ('unpaid', 'partial')
-                  AND period_month >= ?
-            ", [$newRent, $tenancyId, date('Y-m-d', strtotime($effectiveFrom))]);
+                  AND DATE_FORMAT(period_month, '%Y-%m') >= DATE_FORMAT(?, '%Y-%m')
+            ", [$newRent, $tenancyId, $effectiveFrom]);
 
             DB::commit();
             $this->json(['success' => true, 'new_rent' => $newRent]);

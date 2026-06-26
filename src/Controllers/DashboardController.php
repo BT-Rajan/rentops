@@ -59,6 +59,11 @@ class DashboardController extends BaseController
         ");
 
         // Collection % trend (last 6 months)
+        // FIX B09: The old upper bound compared `period_month <= '2025-06-01'`, which
+        // correctly includes June (stored as '2025-06-01'). However it was fragile —
+        // any clock skew or time-component mismatch could silently drop the current
+        // month. Using LAST_DAY() makes the intent explicit and robust: include every
+        // invoice whose period_month falls within the last 6 calendar months.
         $trend = DB::rows("
             SELECT
                 DATE_FORMAT(ri.period_month, '%b %Y')   AS label,
@@ -66,7 +71,7 @@ class DashboardController extends BaseController
                 COALESCE(SUM(ri.amount_paid), 0)        AS paid
             FROM rent_invoices ri
             WHERE ri.period_month >= DATE_FORMAT(DATE_SUB(?, INTERVAL 5 MONTH), '%Y-%m-01')
-              AND ri.period_month <= ?
+              AND ri.period_month <= LAST_DAY(?)
             GROUP BY ri.period_month
             ORDER BY ri.period_month ASC
         ", [$period, $period]);

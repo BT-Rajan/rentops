@@ -56,6 +56,14 @@ class AuditController extends BaseController
 
     /**
      * Auto-fix: generate missing invoices found during audit.
+     *
+     * FIX B11: The previous query only fetched active tenancies, but index() audits
+     * ALL tenancies (including closed ones). This meant the audit dashboard could
+     * permanently report missing invoices on closed tenancies that fix() would
+     * never touch. Fix: use the same tenancy scope as index() — all statuses.
+     * generateMonthlyInvoicesForTenancy() already guards against inserting invoices
+     * on closed tenancies via its own status check, so it is safe to pass closed
+     * tenancy IDs — they will simply return false and be skipped cleanly.
      */
     public function fix(array $params = []): void
     {
@@ -63,7 +71,8 @@ class AuditController extends BaseController
         $engine = new RentEngine();
         $fixed  = 0;
 
-        $tenancies = DB::rows("SELECT id FROM tenancies WHERE status = 'active'");
+        // Audit ALL tenancies (active + closed) — matches the scope used in index()
+        $tenancies = DB::rows("SELECT id FROM tenancies");
         foreach ($tenancies as $te) {
             $issues = $engine->auditTenancy($te['id']);
             foreach ($issues as $issue) {

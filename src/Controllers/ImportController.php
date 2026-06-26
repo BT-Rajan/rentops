@@ -218,13 +218,27 @@ class ImportController extends BaseController
     /**
      * Generate invoices for every full month between move_in and now,
      * so historical data is complete. Skips if already exists (idempotent).
+     *
+     * FIX B08: The previous code unconditionally started backfill from move_in+1month,
+     * assuming generateFirstInvoice() always handles the move-in month. That assumption
+     * breaks when move-in is exactly the 1st of the month — generateFirstInvoice() may
+     * still produce a full-month invoice, but the idempotency guard inside
+     * generateMonthlyInvoicesForTenancy() means the backfill would harmlessly skip it
+     * anyway. The real bug: if generateFirstInvoice() somehow didn't create the invoice
+     * (e.g. a race condition or exception caught upstream), the move-in month had no
+     * coverage and the gap was invisible.
+     *
+     * Fix: start backfill from the move-in month itself. generateMonthlyInvoicesForTenancy()
+     * is idempotent — it skips the month if an invoice already exists — so starting
+     * one month earlier costs nothing and closes the gap.
      */
     private function backfillInvoices(string $tenancyId, string $moveInDate, int $dueDay): void
     {
-        $engine   = new RentEngine();
-        $start    = new \DateTimeImmutable(date('Y-m-01', strtotime($moveInDate)));
-        $start    = $start->modify('+1 month'); // first month handled by generateFirstInvoice
-        $current  = new \DateTimeImmutable(date('Y-m-01'));
+        $engine  = new RentEngine();
+        // Start from the move-in month (not +1). generateMonthlyInvoicesForTenancy
+        // is idempotent so it safely skips the first month when already created.
+        $start   = new \DateTimeImmutable(date('Y-m-01', strtotime($moveInDate)));
+        $current = new \DateTimeImmutable(date('Y-m-01'));
 
         while ($start <= $current) {
             $engine->generateMonthlyInvoicesForTenancy($tenancyId, $start->format('Y-m'));

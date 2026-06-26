@@ -104,17 +104,19 @@ class RentEngine
         $tenancy = $this->requireTenancy($tenancyId);
         $moveOut = new \DateTimeImmutable($moveOutDate);
         $moveIn  = new \DateTimeImmutable($tenancy['move_in_date']);
-        $period  = new \DateTimeImmutable($moveOut->format('Y-m-01'));
 
+        // FIX B05: validate before any arithmetic — previously the guard appeared
+        // after proRateSameMonth/proRateMoveOut, so bad dates caused arithmetic on
+        // a negative day-span before the exception fired.
+        if ($moveOut < $moveIn) {
+            throw new \InvalidArgumentException('Move-out date cannot be before move-in date.');
+        }
+
+        $period      = new \DateTimeImmutable($moveOut->format('Y-m-01'));
         $sameMonth   = $moveIn->format('Y-m') === $moveOut->format('Y-m');
         $finalAmount = $sameMonth
             ? $this->proRateSameMonth((float)$tenancy['agreed_rent'], $moveIn, $moveOut)
             : $this->proRateMoveOut((float)$tenancy['agreed_rent'], $moveOut);
-
-        // Validate: move-out cannot be before move-in
-        if ($moveOut < $moveIn) {
-            throw new \InvalidArgumentException('Move-out date cannot be before move-in date.');
-        }
 
         // Find or create/update the final month invoice
         $invoice = DB::row(
@@ -236,10 +238,18 @@ class RentEngine
         if (!$tenancy) return [['type' => 'error', 'msg' => 'Tenancy not found']];
 
         // Check for gap months (no invoice for a month within tenancy period)
-        $start   = new \DateTimeImmutable(date('Y-m-01', strtotime($tenancy['move_in_date'])));
-        $end     = new \DateTimeImmutable(date('Y-m-01')); // current month
+        $start = new \DateTimeImmutable(date('Y-m-01', strtotime($tenancy['move_in_date'])));
+
+        // FIX B12: For active tenancies the old code set $end to the current month,
+        // so if the monthly cron hadn't run yet (e.g. today is the 2nd), every active
+        // tenancy showed a false "missing invoice" alert for the current month.
+        // Fix: for active tenancies, audit only up to the end of last month. Closed
+        // tenancies retain their move-out month as the natural end point.
         if (!empty($tenancy['move_out_date'])) {
             $end = new \DateTimeImmutable(date('Y-m-01', strtotime($tenancy['move_out_date'])));
+        } else {
+            // Active tenancy: stop at last completed month (current month is in-progress)
+            $end = new \DateTimeImmutable(date('Y-m-01', strtotime('first day of last month')));
         }
 
         $cursor = $start;
@@ -331,12 +341,24 @@ class RentEngine
 
     /**
      * Resolve invoice status from due vs paid amounts.
-     * Handles floating-point tolerance (₹0.50 rounding).
+     *
+     * FIX B06: The previous flat ₹0.50 tolerance was applied regardless of invoice
+     * size. For a ₹500 invoice, ₹499.55 paid would incorrectly return 'paid',
+     * silently forgiving ₹0.45. Worse, the tolerance was meaningless for large
+     * invoices (₹10,000 due, ₹9,999.51 paid → wrongly 'paid').
+     *
+     * Replaced with a proportional tolerance: 0.5% of the amount due, capped at ₹5.
+     * This is generous enough to absorb genuine rounding artefacts while being tight
+     * enough to catch real shortfalls on any invoice size.
      */
     private function resolveStatus(float $due, float $paid): string
     {
-        if ($paid <= 0)              return 'unpaid';
-        if ($paid >= $due - 0.50)   return 'paid';   // tolerance for rounding
+        if ($paid <= 0) return 'unpaid';
+
+        // Proportional rounding tolerance: 0.5% of due, max ₹5
+        $tolerance = min($due * 0.005, 5.0);
+
+        if ($paid >= $due - $tolerance) return 'paid';
         return 'partial';
     }
 

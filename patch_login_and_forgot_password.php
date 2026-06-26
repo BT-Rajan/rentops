@@ -44,8 +44,22 @@ function append_before(string $file, string $anchor, string $insertion, string $
     if (!file_exists($path)) { echo "  [SKIP] $label — file not found: $file\n"; return; }
 
     $content = file_get_contents($path);
-    if (str_contains($content, $insertion)) { echo "  [OK]   $label — already applied\n"; return; }
-    if (!str_contains($content, $anchor))   { echo "  [WARN] $label — anchor not found in $file\n"; return; }
+
+    // FIX B13: The old guard checked str_contains($content, $insertion) which
+    // compares the ENTIRE insertion block against the file. If the committed code
+    // differs by even a single character (whitespace, a comment edit), the check
+    // fails and the block is inserted again, creating duplicate methods and a PHP
+    // fatal error. Instead, extract and check only the first non-empty line of the
+    // insertion as a short unique sentinel — much less likely to drift.
+    $sentinelLine = '';
+    foreach (explode("\n", $insertion) as $line) {
+        $trimmed = trim($line);
+        if ($trimmed !== '') { $sentinelLine = $trimmed; break; }
+    }
+    $alreadyApplied = $sentinelLine !== '' && str_contains($content, $sentinelLine);
+
+    if ($alreadyApplied) { echo "  [OK]   $label — already applied\n"; return; }
+    if (!str_contains($content, $anchor)) { echo "  [WARN] $label — anchor not found in $file\n"; return; }
 
     $new = str_replace($anchor, $insertion . $anchor, $content);
     if ($dry) { echo "  [DRY]  $label — would patch $file\n"; return; }
@@ -60,8 +74,17 @@ function append_after(string $file, string $anchor, string $insertion, string $l
     if (!file_exists($path)) { echo "  [SKIP] $label — file not found: $file\n"; return; }
 
     $content = file_get_contents($path);
-    if (str_contains($content, $insertion)) { echo "  [OK]   $label — already applied\n"; return; }
-    if (!str_contains($content, $anchor))   { echo "  [WARN] $label — anchor not found in $file\n"; return; }
+
+    // FIX B13 (same fix as append_before): use first non-empty line as sentinel
+    $sentinelLine = '';
+    foreach (explode("\n", $insertion) as $line) {
+        $trimmed = trim($line);
+        if ($trimmed !== '') { $sentinelLine = $trimmed; break; }
+    }
+    $alreadyApplied = $sentinelLine !== '' && str_contains($content, $sentinelLine);
+
+    if ($alreadyApplied) { echo "  [OK]   $label — already applied\n"; return; }
+    if (!str_contains($content, $anchor)) { echo "  [WARN] $label — anchor not found in $file\n"; return; }
 
     $new = str_replace($anchor, $anchor . $insertion, $content);
     if ($dry) { echo "  [DRY]  $label — would patch $file\n"; return; }
