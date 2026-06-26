@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Sign In — RentOps</title>
   <link rel="stylesheet" href="/assets/css/main.css">
+  <link rel="stylesheet" href="/assets/css/responsive.css">
   <style>
     body { background: var(--bg); display: flex; align-items: center; justify-content: center; min-height: 100vh; }
     .auth-wrap { width: 100%; max-width: 400px; padding: 24px 16px; }

@@ -1,83 +1,97 @@
 # RentOps MVP v1
 
-Rent operations platform for a single 22-room property. Built with PHP 8.2, MySQL 8, Vanilla JS, HTML/CSS.
+Enterprise-grade rent operations platform for a single 22-room property.
+Built with PHP 8.2, MySQL 8, Vanilla JS, HTML/CSS — zero framework dependencies.
 
-## Setup
+## Quick start
 
-### 1. Requirements
-- PHP 8.2+
+### Requirements
+- PHP 8.2+ (`pdo_mysql`, `mbstring`, `fileinfo`, `openssl`)
 - MySQL 8.0+
-- Apache with `mod_rewrite`
+- Apache 2.4+ with `mod_rewrite` + `mod_headers`
 
-### 2. Database
-```sql
-CREATE DATABASE rentops CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
-```
+### Database setup
 ```bash
-mysql -u root -p rentops < database/migrations/001_initial_schema.sql
-mysql -u root -p rentops < database/seeds/001_seed.sql
+mysql -u root -p -e "
+  CREATE DATABASE rentops CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+  CREATE USER 'rentops_user'@'localhost' IDENTIFIED BY 'CHANGE_ME';
+  GRANT SELECT,INSERT,UPDATE,DELETE ON rentops.* TO 'rentops_user'@'localhost';
+"
+mysql -u rentops_user -p rentops < database/migrations/001_initial_schema.sql
+mysql -u rentops_user -p rentops < database/migrations/002_phase2.sql
+mysql -u rentops_user -p rentops < database/migrations/003_rent_changes.sql
+mysql -u rentops_user -p rentops < database/migrations/004_rate_limits_audit.sql
+mysql -u rentops_user -p rentops < database/seeds/001_seed.sql
 ```
 
-### 3. Environment
-Copy and edit:
+### Environment
 ```bash
 cp .env.example .env
-```
-```
-APP_URL=http://localhost/rentops/public
-DB_HOST=localhost
-DB_NAME=rentops
-DB_USER=root
-DB_PASS=yourpassword
+# Set DB_USER, DB_PASS, APP_URL
 ```
 
-### 4. Apache vhost
-```apache
-<VirtualHost *:80>
-    DocumentRoot /path/to/rentops/public
-    <Directory /path/to/rentops/public>
-        AllowOverride All
-        Require all granted
-    </Directory>
-</VirtualHost>
-```
+### Apache vhost
+Point `DocumentRoot` to `public/` and enable `AllowOverride All`.
 
-### 5. First login
-- URL: `http://your-domain/login`
+### Default login
 - Email: `owner@rentops.local`
 - Password: `RentOps@2024`
-- **Change password immediately** (update hash via `password_hash()`)
+- **Change immediately** via Settings → Change password
 
-### 6. Cron (monthly invoice generation)
+### Cron
 ```cron
-0 6 1 * * php /path/to/rentops/cron/generate_invoices.php >> /var/log/rentops_cron.log 2>&1
+0 6 1 * * php /path/to/rentops/cron/generate_invoices.php
+0 7 * * * php /path/to/rentops/cron/refresh_overdue.php
+0 3 * * 0 php /path/to/rentops/cron/cleanup.php
 ```
 
-## Project structure
+---
+
+## Features
+
+| Module            | What it does |
+|-------------------|---|
+| **Dashboard**     | KPI cards (collection %, collected, outstanding), 6-month trend chart, live AJAX refresh |
+| **Rooms**         | Grid/list toggle, occupancy bar, room detail with 12-month invoice history |
+| **Tenants**       | Search, filter active/vacated, outstanding balance with overdue month count |
+| **Move-in**       | Room assignment, pro-rata first invoice preview, security deposit |
+| **Move-out**      | Pro-rata final invoice, same-month exit detection, deposit reconciliation |
+| **Rent engine**   | Monthly invoice generation, pro-rata, accumulated overdue, mid-tenancy rent changes |
+| **Payments**      | Record cash/UPI/bank/other, partial payments, overpayment detection, printable receipt |
+| **Dues**          | Filter by status, bulk select, day-level overdue counter, one-click pay |
+| **Reminders**     | Select overdue tenants, WhatsApp message generator, copy/open in WhatsApp |
+| **Reports**       | Monthly collection summary, room-wise breakdown, CSV export |
+| **Import**        | Drag-and-drop CSV bulk import, dry-run validation preview, invoice backfill |
+| **Audit / QA**    | Gap detection, overpayment flags, auto-fix missing invoices, paginated audit log |
+| **Settings**      | Property config, password change with strength meter, system info |
+
+## Architecture
+
 ```
 rentops/
-├── public/          # Web root (index.php, .htaccess, assets/)
+├── public/            ← Web root (index.php, .htaccess, assets/, uploads/)
 ├── src/
-│   ├── Controllers/ # One controller per module
-│   ├── Helpers/     # Router, RentEngine
-│   ├── Middleware/  # AuthMiddleware
-│   ├── bootstrap.php
+│   ├── Controllers/   ← 13 controllers, all extend BaseController
+│   ├── Helpers/       ← RentEngine, Router, UuidHelper, RateLimiter, AuditLog
+│   ├── Middleware/    ← AuthMiddleware (session + remember-me)
+│   ├── bootstrap.php  ← Autoloader, config, DB, session, error handler
 │   ├── config.php
-│   ├── db.php
-│   └── routes.php
-├── views/           # PHP templates per module
-│   └── layouts/     # app.php (sidebar shell), auth.php
+│   ├── db.php         ← PDO singleton
+│   ├── error_handler.php
+│   └── routes.php     ← All 30 routes in one place
+├── views/             ← PHP templates per module + layouts/
 ├── database/
-│   ├── migrations/
-│   └── seeds/
-├── cron/
-└── assets/
-    ├── css/main.css
-    └── js/app.js
+│   ├── migrations/    ← 4 SQL files, run in order
+│   └── seeds/         ← Owner user + property + 22 rooms
+├── cron/              ← 3 scripts: invoices, overdue, cleanup
+├── assets/
+│   ├── css/main.css       ← Design system (tokens, components)
+│   └── css/responsive.css ← Breakpoints + print styles
+└── DEPLOY.md          ← Full production checklist
 ```
 
 ## Phase roadmap
 - [x] **Phase 1** — Foundation: DB, auth, routing, design system, all controllers & views
 - [x] **Phase 2** — Data migration: CSV import, file uploads, payment receipts, rent changes
 - [x] **Phase 3** — QA & hardening: RentEngine edge cases, rate limiting, audit log, error handling
-- [ ] **Phase 4** — Production polish: password change UI, email notifications, WhatsApp API
+- [x] **Phase 4** — Production: password change, cron hardening, responsive QA, deployment guide

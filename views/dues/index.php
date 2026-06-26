@@ -61,9 +61,9 @@ $statusCls = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid
       <thead>
         <tr>
           <th><input type="checkbox" id="selectAll" title="Select all"></th>
-          <th>Tenant</th><th>Room</th><th>Period</th>
-          <th class="text-right">Due</th><th class="text-right">Paid</th><th class="text-right">Balance</th>
-          <th>Status</th><th>Overdue by</th><th></th>
+          <th>Tenant</th><th>Room</th><th class="hide-mobile">Period</th>
+          <th class="text-right hide-mobile">Due</th><th class="text-right">Paid</th><th class="text-right">Balance</th>
+          <th>Status</th><th class="hide-mobile">Overdue by</th><th></th>
         </tr>
       </thead>
       <tbody>
@@ -77,7 +77,7 @@ $statusCls = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid
             <div class="text-xs text-muted"><?= htmlspecialchars($d['phone']) ?></div>
           </td>
           <td class="fw-600">Room <?= htmlspecialchars($d['room_number']) ?></td>
-          <td class="text-sm"><?= date('M Y', strtotime($d['period_month'])) ?></td>
+          <td class="text-sm hide-mobile"><?= date("M Y", strtotime($d["period_month"])) ?></td>
           <td class="text-right">₹<?= number_format((float)$d['amount_due']) ?></td>
           <td class="text-right text-success fw-600">₹<?= number_format((float)$d['amount_paid']) ?></td>
           <td class="text-right fw-600 <?= (float)$d['balance'] > 0 ? 'text-danger' : '' ?>">

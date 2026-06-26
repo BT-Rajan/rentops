@@ -68,8 +68,9 @@ $router->get('/reports',                    [ReportController::class, 'index'], 
 $router->get('/reports/export',             [ReportController::class, 'export'],     $auth);
 
 // Settings
-$router->get('/settings',                   [SettingsController::class, 'index'],    $auth);
-$router->post('/settings',                  [SettingsController::class, 'update'],   $auth);
+$router->get('/settings',               [SettingsController::class, 'index'],          $auth);
+$router->post('/settings',              [SettingsController::class, 'update'],         $auth);
+$router->post('/settings/password',     [SettingsController::class, 'changePassword'], $auth);
 
 // Audit & QA
 $router->get('/audit',          [AuditController::class, 'index'], $auth);

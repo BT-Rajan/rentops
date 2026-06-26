@@ -7,15 +7,18 @@
   const sidebar = document.getElementById('sidebar');
   const overlay = document.getElementById('sidebarOverlay');
 
-  function openSidebar()  {
+  function openSidebar() {
     sidebar?.classList.add('open');
-    overlay.style.display = 'block';
+    if (overlay) overlay.style.display = 'block';
     document.body.style.overflow = 'hidden';
+    toggle?.setAttribute('aria-expanded', 'true');
   }
+
   function closeSidebar() {
     sidebar?.classList.remove('open');
-    overlay.style.display = 'none';
+    if (overlay) overlay.style.display = 'none';
     document.body.style.overflow = '';
+    toggle?.setAttribute('aria-expanded', 'false');
   }
 
   toggle?.addEventListener('click', () =>
@@ -23,60 +26,110 @@
   );
   overlay?.addEventListener('click', closeSidebar);
 
-  // Close sidebar on nav click (mobile)
+  // Close on nav click (mobile) and on Escape key
   sidebar?.querySelectorAll('.nav-item').forEach(el =>
     el.addEventListener('click', () => window.innerWidth < 769 && closeSidebar())
   );
-
-  // ─── Flash auto-dismiss ─────────────────────────────────────────────────────
-  document.querySelectorAll('.flash').forEach(el => {
-    setTimeout(() => {
-      el.style.transition = 'opacity .4s';
-      el.style.opacity    = '0';
-      setTimeout(() => el.remove(), 400);
-    }, 4000);
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && sidebar?.classList.contains('open')) closeSidebar();
   });
 
-  // ─── Active nav highlight (dynamic) ────────────────────────────────────────
+  // ─── Active nav highlight ───────────────────────────────────────────────────
   const path = location.pathname;
   document.querySelectorAll('.nav-item').forEach(el => {
-    const href = el.getAttribute('href');
+    const href    = el.getAttribute('href');
     if (!href) return;
-    const isHome = href === '/' && (path === '/' || path === '/dashboard');
+    const isHome  = href === '/' && (path === '/' || path === '/dashboard');
     const isMatch = href !== '/' && path.startsWith(href);
-    if (isHome || isMatch) el.classList.add('active');
-    else el.classList.remove('active');
+    el.classList.toggle('active', isHome || isMatch);
   });
 
-  // ─── Table sort ─────────────────────────────────────────────────────────────
+  // ─── Flash auto-dismiss (4 s) ───────────────────────────────────────────────
+  document.querySelectorAll('.flash').forEach(el => {
+    const dismiss = () => {
+      el.style.transition = 'opacity .35s ease';
+      el.style.opacity    = '0';
+      setTimeout(() => el.remove(), 360);
+    };
+    setTimeout(dismiss, 4000);
+    el.addEventListener('click', dismiss); // tap to dismiss early
+  });
+
+  // ─── Client-side table sort (data-sort on <th>) ─────────────────────────────
   document.querySelectorAll('th[data-sort]').forEach(th => {
     th.style.cursor = 'pointer';
+    th.title        = 'Click to sort';
+
     th.addEventListener('click', function () {
       const table = this.closest('table');
       const tbody = table.querySelector('tbody');
       const col   = [...this.parentElement.children].indexOf(this);
-      const dir   = this.dataset.dir === 'asc' ? -1 : 1;
-      this.dataset.dir = dir === 1 ? 'asc' : 'desc';
+      const asc   = this.dataset.dir !== 'asc';
+      this.dataset.dir = asc ? 'asc' : 'desc';
+
+      // Reset other headers
+      table.querySelectorAll('th[data-sort]').forEach(h => {
+        if (h !== this) delete h.dataset.dir;
+      });
 
       const rows = [...tbody.querySelectorAll('tr')];
       rows.sort((a, b) => {
         const av = a.children[col]?.textContent.trim() ?? '';
         const bv = b.children[col]?.textContent.trim() ?? '';
-        const an = parseFloat(av.replace(/[₹,]/g, ''));
-        const bn = parseFloat(bv.replace(/[₹,]/g, ''));
-        return isNaN(an) || isNaN(bn)
-          ? av.localeCompare(bv) * dir
-          : (an - bn) * dir;
+        const an = parseFloat(av.replace(/[₹,\s]/g, ''));
+        const bn = parseFloat(bv.replace(/[₹,\s]/g, ''));
+        const cmp = isNaN(an) || isNaN(bn)
+          ? av.localeCompare(bv, 'en-IN')
+          : an - bn;
+        return asc ? cmp : -cmp;
       });
 
       rows.forEach(r => tbody.appendChild(r));
     });
   });
 
-  // ─── Confirm destructive forms ──────────────────────────────────────────────
+  // ─── Confirm destructive actions ────────────────────────────────────────────
   document.querySelectorAll('[data-confirm]').forEach(el =>
     el.addEventListener('click', e => {
       if (!confirm(el.dataset.confirm)) e.preventDefault();
     })
   );
+
+  // ─── AJAX form submission feedback ─────────────────────────────────────────
+  // Prevents double-submit on slow connections
+  document.querySelectorAll('form:not([data-no-lock])').forEach(form => {
+    form.addEventListener('submit', function () {
+      const btn = this.querySelector('button[type="submit"]');
+      if (!btn || btn.dataset.locked) return;
+      btn.dataset.locked    = '1';
+      btn.dataset.origText  = btn.textContent;
+      btn.disabled          = true;
+      btn.style.opacity     = '.7';
+      // Re-enable after 8s in case navigation fails
+      setTimeout(() => {
+        btn.disabled = false;
+        btn.style.opacity = '';
+        delete btn.dataset.locked;
+      }, 8000);
+    });
+  });
+
+  // ─── Touch-friendly: increase small btn tap area on mobile ─────────────────
+  if ('ontouchstart' in window) {
+    document.querySelectorAll('.btn-sm').forEach(btn => {
+      btn.style.minHeight = '36px';
+    });
+  }
+
+  // ─── Number formatting helper (exposed globally for inline scripts) ─────────
+  window.fmtINR = v =>
+    '₹' + Number(v).toLocaleString('en-IN', { maximumFractionDigits: 0 });
+
+  // ─── Escape HTML helper ─────────────────────────────────────────────────────
+  window.escHtml = s => {
+    const d = document.createElement('div');
+    d.textContent = s ?? '';
+    return d.innerHTML;
+  };
+
 })();
