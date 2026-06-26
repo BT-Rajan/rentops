@@ -33,4 +33,8 @@
 
     <button type="submit" class="btn btn-primary w-full" style="justify-content:center;padding:11px">Sign in</button>
   </form>
+
+  <p style="text-align:center;margin-top:16px;font-size:13px;color:var(--text-secondary)">
+    <a href="<?= url('/forgot-password') ?>" style="color:var(--c-primary)">Forgot your password?</a>
+  </p>
 </div>

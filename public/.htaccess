@@ -1,5 +1,6 @@
 Options -Indexes
 RewriteEngine On
+RewriteBase /rentops/public/
 
 # ── Block sensitive directories ───────────────────────────────────────────────
 RewriteRule ^(src|database|vendor|cron)/ - [F,L]

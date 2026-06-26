@@ -21,9 +21,13 @@ use App\Controllers\RentChangeController;
 $auth = [AuthMiddleware::class];
 
 // Auth
-$router->get('/login',          [AuthController::class, 'showLogin']);
-$router->post('/login',         [AuthController::class, 'login']);
-$router->post('/logout',        [AuthController::class, 'logout']);
+$router->get('/login',            [AuthController::class, 'showLogin']);
+$router->post('/login',           [AuthController::class, 'login']);
+$router->post('/logout',          [AuthController::class, 'logout']);
+$router->get('/forgot-password',  [AuthController::class, 'showForgotPassword']);
+$router->post('/forgot-password', [AuthController::class, 'forgotPassword']);
+$router->get('/reset-password',   [AuthController::class, 'showResetPassword']);
+$router->post('/reset-password',  [AuthController::class, 'resetPassword']);
 
 // Dashboard
 $router->get('/',               [DashboardController::class, 'index'],   $auth);
