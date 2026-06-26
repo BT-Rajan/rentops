@@ -1,5 +1,5 @@
 <div style="max-width:900px">
-  <a href="/import" class="btn btn-ghost btn-sm" style="padding-left:0;margin-bottom:20px">← Back to import</a>
+  <a href="<?= url("/import") ?>" class="btn btn-ghost btn-sm" style="padding-left:0;margin-bottom:20px">← Back to import</a>
 
   <!-- Summary bar -->
   <div class="stat-grid mb-20">
@@ -62,14 +62,14 @@
   </div>
 
   <div class="d-flex gap-12">
-    <form action="/import/confirm" method="POST">
+    <form action="<?= url("/import/confirm") ?>" method="POST">
       <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
       <button type="submit" class="btn btn-primary"
               onclick="return confirm('Import <?= count($valid) ?> tenant(s)? This will create tenants, assign rooms, and generate all invoices from move-in date.')">
         Confirm — import <?= count($valid) ?> tenant<?= count($valid) !== 1 ? 's' : '' ?>
       </button>
     </form>
-    <a href="/import" class="btn btn-secondary">Cancel</a>
+    <a href="<?= url("/import") ?>" class="btn btn-secondary">Cancel</a>
   </div>
 
   <?php else: ?>
@@ -77,7 +77,7 @@
     <div class="empty-state">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
       <p>No valid rows to import. Fix the errors above and re-upload.</p>
-      <a href="/import" class="btn btn-primary btn-sm" style="margin-top:12px">Upload again</a>
+      <a href="<?= url("/import") ?>" class="btn btn-primary btn-sm" style="margin-top:12px">Upload again</a>
     </div>
   </div>
   <?php endif; ?>

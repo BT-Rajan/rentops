@@ -4,7 +4,7 @@
   <div class="card">
     <div class="card-header"><span class="card-title">Property</span></div>
     <div class="card-body">
-      <form action="/settings" method="POST" novalidate>
+      <form action="<?= url("/settings") ?>" method="POST" novalidate>
         <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
 
         <div class="form-group">
@@ -52,7 +52,7 @@
       <!-- Password change -->
       <div style="border-top:1px solid var(--border);padding-top:16px">
         <div class="text-sm fw-600 mb-12">Change password</div>
-        <form action="/settings/password" method="POST" novalidate id="pwForm">
+        <form action="<?= url("/settings/password") ?>" method="POST" novalidate id="pwForm">
           <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
 
           <div class="form-group">

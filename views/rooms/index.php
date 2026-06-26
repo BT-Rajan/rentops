@@ -53,7 +53,7 @@ $pct      = $total > 0 ? round($occupied / $total * 100) : 0;
 <!-- Grid view -->
 <div id="roomGrid" class="room-grid">
   <?php foreach ($rooms as $r): ?>
-    <a href="/rooms/<?= htmlspecialchars($r['id']) ?>" class="room-tile <?= htmlspecialchars($r['status']) ?>">
+    <a href="<?= url("/rooms/" . htmlspecialchars($r['id'])) ?>" class="room-tile <?= htmlspecialchars($r['status']) ?>">
       <div class="room-number">Room <?= htmlspecialchars($r['room_number']) ?></div>
       <div class="room-type"><?= htmlspecialchars($r['room_type']) ?></div>
       <div class="room-rent">₹<?= number_format((float)$r['agreed_rent'] ?: (float)$r['base_rent']) ?>/mo</div>
@@ -84,14 +84,14 @@ $pct      = $total > 0 ? round($occupied / $total * 100) : 0;
               <td class="text-sm text-muted" style="text-transform:capitalize"><?= htmlspecialchars($r['room_type']) ?></td>
               <td>
                 <?php if ($r['tenant_name']): ?>
-                  <a href="/tenants/<?= htmlspecialchars($r['tenant_id']) ?>"><?= htmlspecialchars($r['tenant_name']) ?></a>
+                  <a href="<?= url("/tenants/" . htmlspecialchars($r['tenant_id'])) ?>"><?= htmlspecialchars($r['tenant_name']) ?></a>
                 <?php else: ?>
                   <span class="text-hint">—</span>
                 <?php endif; ?>
               </td>
               <td class="fw-600">₹<?= number_format((float)$r['agreed_rent'] ?: (float)$r['base_rent']) ?></td>
               <td><?= statusBadge($r['status']) ?></td>
-              <td><a href="/rooms/<?= htmlspecialchars($r['id']) ?>" class="btn btn-ghost btn-sm">View</a></td>
+              <td><a href="<?= url("/rooms/" . htmlspecialchars($r['id'])) ?>" class="btn btn-ghost btn-sm">View</a></td>
             </tr>
           <?php endforeach; ?>
         </tbody>

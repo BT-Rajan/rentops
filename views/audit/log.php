@@ -1,5 +1,5 @@
 <div style="margin-bottom:20px">
-  <a href="/audit" class="btn btn-ghost btn-sm" style="padding-left:0">← Back to audit</a>
+  <a href="<?= url("/audit") ?>" class="btn btn-ghost btn-sm" style="padding-left:0">← Back to audit</a>
 </div>
 
 <div class="card">
@@ -60,11 +60,11 @@
   <?php if ($pages > 1): ?>
   <div style="padding:14px 20px;border-top:1px solid var(--border);display:flex;gap:8px;align-items:center">
     <?php if ($page > 1): ?>
-      <a href="/audit/log?page=<?= $page - 1 ?>" class="btn btn-secondary btn-sm">← Prev</a>
+      <a href="<?= url("/audit/log?page=" . ($page - 1)) ?>" class="btn btn-secondary btn-sm">← Prev</a>
     <?php endif; ?>
     <span class="text-sm text-muted">Page <?= $page ?> of <?= $pages ?></span>
     <?php if ($page < $pages): ?>
-      <a href="/audit/log?page=<?= $page + 1 ?>" class="btn btn-secondary btn-sm">Next →</a>
+      <a href="<?= url("/audit/log?page=" . ($page + 1)) ?>" class="btn btn-secondary btn-sm">Next →</a>
     <?php endif; ?>
   </div>
   <?php endif; ?>

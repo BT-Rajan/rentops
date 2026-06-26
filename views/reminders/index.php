@@ -3,7 +3,7 @@
     <label class="text-sm text-muted">Period</label>
     <input type="month" id="monthPicker" class="form-control" style="width:150px"
            value="<?= htmlspecialchars($month) ?>"
-           onchange="location.href='/reminders?month='+this.value">
+           onchange="location.href=BASE+'/reminders?month='+this.value">
   </div>
   <div class="d-flex gap-8">
     <button class="btn btn-secondary btn-sm" id="selectAllBtn">Select all</button>
@@ -28,7 +28,7 @@
         <?php foreach ($overdue as $r): ?>
         <tr>
           <td><input type="checkbox" class="inv-check" value="<?= htmlspecialchars($r['invoice_id']) ?>"></td>
-          <td><a href="/tenants/<?= htmlspecialchars($r['tenant_id']) ?>" class="fw-600"><?= htmlspecialchars($r['full_name']) ?></a></td>
+          <td><a href="<?= url("/tenants/" . htmlspecialchars($r['tenant_id'])) ?>" class="fw-600"><?= htmlspecialchars($r['full_name']) ?></a></td>
           <td>Room <?= htmlspecialchars($r['room_number']) ?></td>
           <td class="text-right text-danger fw-600">₹<?= number_format((float)$r['balance']) ?></td>
           <td><span class="badge badge-<?= $r['status']==='overdue'?'danger':($r['status']==='partial'?'warning':'muted') ?>"><?= ucfirst($r['status']) ?></span></td>
@@ -93,7 +93,7 @@ document.getElementById('previewBtn').addEventListener('click', async function (
   this.disabled = true; this.textContent = 'Loading…';
   try {
     const body = `_csrf=${encodeURIComponent(csrf)}&${ids.map(id => `invoice_ids[]=${encodeURIComponent(id)}`).join('&')}`;
-    const r    = await fetch('/reminders/preview', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body });
+    const r    = await fetch(BASE + '/reminders/preview', { method:'POST', headers:{'Content-Type':'application/x-www-form-urlencoded'}, body });
     const data = await r.json();
     renderMessages(data.messages || []);
     document.getElementById('previewModal').style.display = 'block';

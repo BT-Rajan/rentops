@@ -2,8 +2,10 @@
 declare(strict_types=1);
 
 use App\Helpers\Router;
+use App\Helpers\UrlHelper;
+use App\Helpers\EnvLoader;
 
-// Autoloader
+// ── Autoloader ────────────────────────────────────────────────────────────────
 spl_autoload_register(function (string $class): void {
     $base = ROOT . '/src/';
     $rel  = str_replace('App\\', '', $class);
@@ -11,16 +13,27 @@ spl_autoload_register(function (string $class): void {
     if (file_exists($file)) require $file;
 });
 
-// Error handling
+// ── Load .env ─────────────────────────────────────────────────────────────────
+EnvLoader::load(ROOT . '/.env');
+
+// ── Error handling ────────────────────────────────────────────────────────────
 require ROOT . '/src/error_handler.php';
 
-// Config
+// ── Config ────────────────────────────────────────────────────────────────────
 $config = require ROOT . '/src/config.php';
 
-// DB singleton
+// ── URL helper (must come before any output) ──────────────────────────────────
+UrlHelper::init($config['app']['url']);
+
+// ── Global shorthand functions ────────────────────────────────────────────────
+function url(string $path): string   { return \App\Helpers\UrlHelper::url($path); }
+function asset(string $path): string { return \App\Helpers\UrlHelper::asset($path); }
+function base(): string              { return \App\Helpers\UrlHelper::base(); }
+
+// ── DB singleton ──────────────────────────────────────────────────────────────
 require ROOT . '/src/db.php';
 
-// Session
+// ── Session ───────────────────────────────────────────────────────────────────
 if (session_status() === PHP_SESSION_NONE) {
     session_name('rentops_sess');
     session_start([
@@ -30,6 +43,6 @@ if (session_status() === PHP_SESSION_NONE) {
     ]);
 }
 
-// Router
+// ── Router ────────────────────────────────────────────────────────────────────
 $router = new Router();
 require ROOT . '/src/routes.php';

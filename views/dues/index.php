@@ -41,14 +41,14 @@ $statusCls = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid
 <div class="d-flex align-center justify-between mb-16" style="flex-wrap:wrap;gap:10px">
   <div class="d-flex gap-8">
     <?php foreach ($filterMap as $key => $f): ?>
-      <a href="/dues?filter=<?= $key ?>&month=<?= htmlspecialchars($month) ?>"
+      <a href="<?= url("/dues?filter=" . $key . "&month=" . htmlspecialchars($month)) ?>"
          class="btn btn-sm <?= $f['cls'] ?>"><?= $f['label'] ?></a>
     <?php endforeach; ?>
   </div>
   <div class="d-flex gap-8 align-center">
     <input type="month" id="monthPicker" class="form-control" style="width:150px"
            value="<?= htmlspecialchars($month) ?>"
-           onchange="location.href='/dues?filter=<?= htmlspecialchars($filter) ?>&month='+this.value">
+           onchange="location.href=BASE+'/dues?filter=<?= htmlspecialchars($filter) ?>&month='+this.value">
     <button class="btn btn-secondary btn-sm" id="generateBtn">Generate invoices</button>
   </div>
 </div>
@@ -71,7 +71,7 @@ $statusCls = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid
         <tr>
           <td><input type="checkbox" class="row-select" value="<?= htmlspecialchars($d['id']) ?>"></td>
           <td>
-            <a href="/tenants/<?= htmlspecialchars($d['tenant_id']) ?>" class="fw-600">
+            <a href="<?= url("/tenants/" . htmlspecialchars($d['tenant_id'])) ?>" class="fw-600">
               <?= htmlspecialchars($d['full_name']) ?>
             </a>
             <div class="text-xs text-muted"><?= htmlspecialchars($d['phone']) ?></div>
@@ -89,7 +89,7 @@ $statusCls = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid
           </td>
           <td>
             <?php if ($d['status'] !== 'paid'): ?>
-              <a href="/payments/new?invoice_id=<?= htmlspecialchars($d['id']) ?>" class="btn btn-primary btn-sm">Pay</a>
+              <a href="<?= url("/payments/new?invoice_id=" . htmlspecialchars($d['id'])) ?>" class="btn btn-primary btn-sm">Pay</a>
             <?php endif; ?>
           </td>
         </tr>
@@ -108,7 +108,7 @@ $statusCls = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid
 <!-- Bulk reminder bar (shows when rows selected) -->
 <div id="bulkBar" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--text-primary);color:#fff;padding:12px 20px;border-radius:var(--radius-lg);box-shadow:var(--shadow);display:none;align-items:center;gap:16px;z-index:200">
   <span id="bulkCount">0 selected</span>
-  <a id="bulkReminder" href="/reminders" class="btn btn-sm" style="background:#fff;color:var(--text-primary)">Send reminders</a>
+  <a id="bulkReminder" href="<?= url("/reminders") ?>" class="btn btn-sm" style="background:#fff;color:var(--text-primary)">Send reminders</a>
 </div>
 
 <script>
@@ -143,7 +143,7 @@ document.getElementById('generateBtn').addEventListener('click', async function 
   const month = document.getElementById('monthPicker').value;
   this.disabled = true; this.textContent = 'Generating…';
   try {
-    const r = await fetch('/api/invoices/generate', {
+    const r = await fetch(BASE + '/api/invoices/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: `_csrf=<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>&month=${month}`

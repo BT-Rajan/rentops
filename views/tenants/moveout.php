@@ -1,5 +1,5 @@
 <div style="max-width:560px">
-  <a href="/tenants/<?= htmlspecialchars($tenant['id']) ?>" class="btn btn-ghost btn-sm" style="padding-left:0;margin-bottom:20px">← Back to tenant</a>
+  <a href="<?= url("/tenants/" . htmlspecialchars($tenant['id'])) ?>" class="btn btn-ghost btn-sm" style="padding-left:0;margin-bottom:20px">← Back to tenant</a>
 
   <div class="card">
     <div class="card-header">
@@ -21,7 +21,7 @@
         </div>
       </div>
 
-      <form action="/tenants/<?= htmlspecialchars($tenant['id']) ?>/moveout" method="POST" novalidate>
+      <form action="<?= url("/tenants/" . htmlspecialchars($tenant['id']) . "/moveout") ?>" method="POST" novalidate>
         <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
 
         <div class="form-group">
@@ -66,7 +66,7 @@
           <button type="submit" class="btn btn-danger" onclick="return confirm('Confirm move-out for <?= htmlspecialchars(addslashes($tenant['full_name'])) ?>?')">
             Confirm move-out
           </button>
-          <a href="/tenants/<?= htmlspecialchars($tenant['id']) ?>" class="btn btn-secondary">Cancel</a>
+          <a href="<?= url("/tenants/" . htmlspecialchars($tenant['id'])) ?>" class="btn btn-secondary">Cancel</a>
         </div>
       </form>
 

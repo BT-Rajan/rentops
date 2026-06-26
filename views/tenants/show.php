@@ -4,7 +4,7 @@ $invMap   = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid'
 ?>
 
 <div style="margin-bottom:20px">
-  <a href="/tenants" class="btn btn-ghost btn-sm" style="padding-left:0">← Back to tenants</a>
+  <a href="<?= url("/tenants") ?>" class="btn btn-ghost btn-sm" style="padding-left:0">← Back to tenants</a>
 </div>
 
 <div style="display:grid;grid-template-columns:1fr 2fr;gap:20px;align-items:start" class="tenant-detail-grid">
@@ -49,7 +49,7 @@ $invMap   = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid'
           <?php if ($activeTenancy): ?>
           <div class="d-flex justify-between">
             <span class="text-sm text-muted">Room</span>
-            <a href="/rooms/<?= htmlspecialchars($activeTenancy['room_id']) ?>" class="text-sm fw-600">Room <?= htmlspecialchars($activeTenancy['room_number']) ?></a>
+            <a href="<?= url("/rooms/" . htmlspecialchars($activeTenancy['room_id'])) ?>" class="text-sm fw-600">Room <?= htmlspecialchars($activeTenancy['room_number']) ?></a>
           </div>
           <div class="d-flex justify-between">
             <span class="text-sm text-muted">Agreed rent</span>
@@ -97,12 +97,12 @@ $invMap   = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid'
     <!-- Action buttons -->
     <div style="display:flex;flex-direction:column;gap:8px">
       <?php if ($activeTenancy): ?>
-        <a href="/payments/new" class="btn btn-primary" style="justify-content:center">Record Payment</a>
-        <a href="/tenants/<?= htmlspecialchars($tenant['id']) ?>/moveout" class="btn btn-secondary" style="justify-content:center">Process Move-out</a>
+        <a href="<?= url("/payments/new") ?>" class="btn btn-primary" style="justify-content:center">Record Payment</a>
+        <a href="<?= url("/tenants/" . htmlspecialchars($tenant['id']) . "/moveout") ?>" class="btn btn-secondary" style="justify-content:center">Process Move-out</a>
       <?php elseif ($tenant['status'] === 'active'): ?>
-        <a href="/tenants/<?= htmlspecialchars($tenant['id']) ?>/movein" class="btn btn-primary" style="justify-content:center">Assign Room</a>
+        <a href="<?= url("/tenants/" . htmlspecialchars($tenant['id']) . "/movein") ?>" class="btn btn-primary" style="justify-content:center">Assign Room</a>
       <?php endif; ?>
-      <a href="/reminders" class="btn btn-secondary" style="justify-content:center">Send Reminder</a>
+      <a href="<?= url("/reminders") ?>" class="btn btn-secondary" style="justify-content:center">Send Reminder</a>
     </div>
 
     <!-- ID proof upload -->
@@ -151,7 +151,7 @@ $invMap   = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid'
     <div class="card-header">
       <span class="card-title">Invoice history</span>
       <?php if ($activeTenancy): ?>
-        <a href="/payments/new" class="btn btn-primary btn-sm">+ Record Payment</a>
+        <a href="<?= url("/payments/new") ?>" class="btn btn-primary btn-sm">+ Record Payment</a>
       <?php endif; ?>
     </div>
     <?php if ($invoices): ?>
@@ -172,7 +172,7 @@ $invMap   = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid'
             <td class="text-sm text-muted"><?= htmlspecialchars($inv['modes'] ?? '—') ?></td>
             <td>
               <?php if ($inv['status'] !== 'paid'): ?>
-                <a href="/payments/new?invoice_id=<?= htmlspecialchars($inv['id']) ?>" class="btn btn-primary btn-sm">Pay</a>
+                <a href="<?= url("/payments/new?invoice_id=" . htmlspecialchars($inv['id'])) ?>" class="btn btn-primary btn-sm">Pay</a>
               <?php endif; ?>
             </td>
           </tr>
@@ -205,7 +205,7 @@ async function submitRentChange() {
   const note     = document.getElementById('rentNote').value;
   if (!newRent || newRent <= 0) { alert('Enter a valid rent amount.'); return; }
 
-  const r = await fetch(`/tenancies/${TENANCY_ID}/rent-change`, {
+  const r = await fetch(`${BASE}/tenancies/${TENANCY_ID}/rent-change`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `_csrf=${encodeURIComponent(CSRF)}&new_rent=${newRent}&effective_from=${encodeURIComponent(effDate)}&note=${encodeURIComponent(note)}`
@@ -231,7 +231,7 @@ async function uploadProof(file) {
   fd.append('_csrf', CSRF);
 
   try {
-    const r = await fetch(`/tenants/${TENANT_ID}/upload-proof`, { method: 'POST', body: fd });
+    const r = await fetch(`${BASE}/tenants/${TENANT_ID}/upload-proof`, { method: 'POST', body: fd });
     const d = await r.json();
     document.getElementById('proofBar').style.width = '100%';
     if (d.success) {
@@ -255,7 +255,7 @@ function handleProofDrop(e) {
 
 document.getElementById('deleteProofBtn')?.addEventListener('click', async function () {
   if (!confirm('Remove this ID proof file?')) return;
-  const r = await fetch(`/tenants/${TENANT_ID}/delete-proof`, {
+  const r = await fetch(`${BASE}/tenants/${TENANT_ID}/delete-proof`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: `_csrf=${encodeURIComponent(CSRF)}`

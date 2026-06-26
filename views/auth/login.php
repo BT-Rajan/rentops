@@ -10,7 +10,7 @@
     </div>
   <?php endif; ?>
 
-  <form action="/login" method="POST" novalidate>
+  <form action="<?= url("/login") ?>" method="POST" novalidate>
     <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
 
     <div class="form-group">

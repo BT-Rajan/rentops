@@ -18,7 +18,7 @@ foreach ($tenancies as $te) {
 ?>
 
 <div style="margin-bottom:20px">
-  <a href="/rooms" class="btn btn-ghost btn-sm" style="padding-left:0">← Back to rooms</a>
+  <a href="<?= url("/rooms") ?>" class="btn btn-ghost btn-sm" style="padding-left:0">← Back to rooms</a>
 </div>
 
 <div style="display:grid;grid-template-columns:1fr 2fr;gap:20px;align-items:start" class="room-detail-grid">
@@ -47,7 +47,7 @@ foreach ($tenancies as $te) {
           </div>
           <div class="d-flex justify-between">
             <span class="text-sm text-muted">Tenant</span>
-            <a href="/tenants/<?= htmlspecialchars($active['tenant_id']) ?>" class="text-sm fw-600"><?= htmlspecialchars($active['full_name']) ?></a>
+            <a href="<?= url("/tenants/" . htmlspecialchars($active['tenant_id'])) ?>" class="text-sm fw-600"><?= htmlspecialchars($active['full_name']) ?></a>
           </div>
           <div class="d-flex justify-between">
             <span class="text-sm text-muted">Move-in</span>
@@ -64,7 +64,7 @@ foreach ($tenancies as $te) {
 
         <?php if (!$active): ?>
         <div class="mt-16">
-          <a href="/tenants/new" class="btn btn-primary w-full" style="justify-content:center">+ Add Tenant</a>
+          <a href="<?= url("/tenants/new") ?>" class="btn btn-primary w-full" style="justify-content:center">+ Add Tenant</a>
         </div>
         <?php endif; ?>
       </div>
@@ -74,7 +74,7 @@ foreach ($tenancies as $te) {
     <div class="card">
       <div class="card-header"><span class="card-title">Room settings</span></div>
       <div class="card-body">
-        <form action="/rooms/<?= htmlspecialchars($room['id']) ?>" method="POST">
+        <form action="<?= url("/rooms/" . htmlspecialchars($room['id'])) ?>" method="POST">
           <input type="hidden" name="_csrf" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
           <div class="form-group">
             <label class="form-label">Base rent (₹)</label>
@@ -124,7 +124,7 @@ foreach ($tenancies as $te) {
             <td><span class="badge badge-<?= $invoiceMap[$inv['status']] ?? 'muted' ?>"><?= ucfirst($inv['status']) ?></span></td>
             <td>
               <?php if ($inv['status'] !== 'paid'): ?>
-                <a href="/payments/new?invoice_id=<?= htmlspecialchars($inv['id']) ?>" class="btn btn-primary btn-sm">Pay</a>
+                <a href="<?= url("/payments/new?invoice_id=" . htmlspecialchars($inv['id'])) ?>" class="btn btn-primary btn-sm">Pay</a>
               <?php endif; ?>
             </td>
           </tr>

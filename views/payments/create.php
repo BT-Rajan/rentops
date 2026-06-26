@@ -1,10 +1,10 @@
 <div style="max-width:580px">
-  <a href="/dues" class="btn btn-ghost btn-sm" style="padding-left:0;margin-bottom:20px">← Back to dues</a>
+  <a href="<?= url("/dues") ?>" class="btn btn-ghost btn-sm" style="padding-left:0;margin-bottom:20px">← Back to dues</a>
 
   <div class="card">
     <div class="card-header"><span class="card-title">Record payment</span></div>
     <div class="card-body">
-      <form action="/payments/new" method="POST" novalidate id="paymentForm">
+      <form action="<?= url("/payments/new") ?>" method="POST" novalidate id="paymentForm">
         <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
 
         <!-- Invoice selector (if not pre-selected) -->
@@ -80,7 +80,7 @@
 
         <div class="d-flex gap-12 mt-8">
           <button type="submit" class="btn btn-primary">Record payment</button>
-          <a href="/dues" class="btn btn-secondary">Cancel</a>
+          <a href="<?= url("/dues") ?>" class="btn btn-secondary">Cancel</a>
         </div>
       </form>
     </div>

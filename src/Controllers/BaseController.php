@@ -20,10 +20,7 @@ abstract class BaseController
         require $viewFile;
         $content = ob_get_clean();
 
-        if ($layout === 'none') {
-            echo $content;
-            return;
-        }
+        if ($layout === 'none') { echo $content; return; }
 
         require $layoutFile;
     }
@@ -36,13 +33,17 @@ abstract class BaseController
         exit;
     }
 
+    /**
+     * Redirect to an app path. $path must begin with /
+     * Automatically prepends APP_BASE so subfolder installs work.
+     */
     protected function redirect(string $path, string $flash = '', string $flashType = 'success'): void
     {
         if ($flash) {
             $_SESSION['flash']      = $flash;
             $_SESSION['flash_type'] = $flashType;
         }
-        header("Location: {$path}");
+        header('Location: ' . url($path));
         exit;
     }
 

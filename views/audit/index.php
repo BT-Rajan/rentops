@@ -25,7 +25,7 @@
 <!-- Actions -->
 <div class="d-flex gap-10 mb-24">
   <?php if ($stats['missing_inv'] > 0): ?>
-  <form action="/audit/fix" method="POST">
+  <form action="<?= url("/audit/fix") ?>" method="POST">
     <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
     <button type="submit" class="btn btn-primary"
             onclick="return confirm('Auto-generate <?= $stats['missing_inv'] ?> missing invoice(s)?')">
@@ -35,7 +35,7 @@
   <?php else: ?>
     <span class="btn btn-secondary" style="cursor:default;opacity:.6">⚡ Auto-fix (nothing to fix)</span>
   <?php endif; ?>
-  <a href="/audit/log" class="btn btn-secondary">View audit log →</a>
+  <a href="<?= url("/audit/log") ?>" class="btn btn-secondary">View audit log →</a>
 </div>
 
 <!-- Results -->
@@ -54,7 +54,7 @@
         <?php foreach ($results as $r): ?>
         <tr>
           <td>
-            <a href="/tenants/<?= htmlspecialchars($r['tenancy']['tenant_id'] ?? '') ?>" class="fw-600">
+            <a href="<?= url("/tenants/" . htmlspecialchars($r['tenancy']['tenant_id'] ?? '')) ?>" class="fw-600">
               <?= htmlspecialchars($r['tenancy']['full_name']) ?>
             </a>
           </td>

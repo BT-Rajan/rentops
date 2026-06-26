@@ -14,23 +14,26 @@ class DB
     {
         if (self::$pdo !== null) return;
 
-        $dsn = "mysql:host={$cfg['host']};dbname={$cfg['name']};charset={$cfg['charset']}";
+        $dsn = sprintf(
+            'mysql:host=%s;port=%d;dbname=%s;charset=%s',
+            $cfg['host'], $cfg['port'] ?? 3306, $cfg['name'], $cfg['charset']
+        );
+
         try {
             self::$pdo = new PDO($dsn, $cfg['user'], $cfg['pass'], [
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
                 PDO::ATTR_EMULATE_PREPARES   => false,
+                PDO::MYSQL_ATTR_INIT_COMMAND => "SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci",
             ]);
         } catch (PDOException $e) {
+            error_log('[RentOps] DB connection failed: ' . $e->getMessage());
             http_response_code(500);
-            die('Database connection failed.');
+            die('Database connection failed. Check your .env configuration.');
         }
     }
 
-    public static function get(): PDO
-    {
-        return self::$pdo;
-    }
+    public static function get(): PDO          { return self::$pdo; }
 
     public static function query(string $sql, array $params = []): \PDOStatement
     {
@@ -52,12 +55,13 @@ class DB
 
     public static function scalar(string $sql, array $params = []): mixed
     {
-        return self::query($sql, $params)->fetchColumn();
+        $val = self::query($sql, $params)->fetchColumn();
+        return $val === false ? null : $val;
     }
 
     public static function insert(string $table, array $data): string
     {
-        $cols    = implode(',', array_keys($data));
+        $cols    = implode(',', array_map(fn($k) => "`{$k}`", array_keys($data)));
         $holders = implode(',', array_fill(0, count($data), '?'));
         self::query("INSERT INTO `{$table}` ({$cols}) VALUES ({$holders})", array_values($data));
         return self::$pdo->lastInsertId();
@@ -66,14 +70,18 @@ class DB
     public static function update(string $table, array $data, string $where, array $whereParams = []): int
     {
         $set  = implode(',', array_map(fn($k) => "`{$k}`=?", array_keys($data)));
-        $stmt = self::query("UPDATE `{$table}` SET {$set} WHERE {$where}", [...array_values($data), ...$whereParams]);
+        $stmt = self::query(
+            "UPDATE `{$table}` SET {$set} WHERE {$where}",
+            [...array_values($data), ...$whereParams]
+        );
         return $stmt->rowCount();
     }
 
     public static function beginTransaction(): void  { self::$pdo->beginTransaction(); }
     public static function commit(): void            { self::$pdo->commit(); }
-    public static function rollback(): void          { self::$pdo->rollBack(); }
+    public static function rollback(): void          { if (self::$pdo->inTransaction()) self::$pdo->rollBack(); }
     public static function lastId(): string          { return self::$pdo->lastInsertId(); }
+    public static function inTransaction(): bool     { return self::$pdo->inTransaction(); }
 }
 
 // Bootstrap connection

@@ -1,10 +1,10 @@
 <div style="max-width:640px">
-  <a href="/tenants" class="btn btn-ghost btn-sm" style="padding-left:0;margin-bottom:20px">← Back to tenants</a>
+  <a href="<?= url("/tenants") ?>" class="btn btn-ghost btn-sm" style="padding-left:0;margin-bottom:20px">← Back to tenants</a>
 
   <div class="card">
     <div class="card-header"><span class="card-title">New tenant</span></div>
     <div class="card-body">
-      <form action="/tenants/new" method="POST" novalidate>
+      <form action="<?= url("/tenants/new") ?>" method="POST" novalidate>
         <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
 
         <div class="form-row">
@@ -52,7 +52,7 @@
 
         <div class="d-flex gap-12 mt-8">
           <button type="submit" class="btn btn-primary">Create tenant & assign room →</button>
-          <a href="/tenants" class="btn btn-secondary">Cancel</a>
+          <a href="<?= url("/tenants") ?>" class="btn btn-secondary">Cancel</a>
         </div>
       </form>
     </div>

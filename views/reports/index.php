@@ -1,11 +1,11 @@
 <?php $statusCls = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid'=>'muted']; ?>
 
 <div class="d-flex align-center justify-between mb-24">
-  <form method="GET" action="/reports" class="d-flex align-center gap-8">
+  <form method="GET" action="<?= url("/reports") ?>" class="d-flex align-center gap-8">
     <input type="month" name="month" class="form-control" style="width:160px"
            value="<?= htmlspecialchars($month) ?>" onchange="this.form.submit()">
   </form>
-  <a href="/reports/export?month=<?= htmlspecialchars($month) ?>" class="btn btn-secondary btn-sm">
+  <a href="<?= url("/reports/export?month=" . htmlspecialchars($month)) ?>" class="btn btn-secondary btn-sm">
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
     Export CSV
   </a>

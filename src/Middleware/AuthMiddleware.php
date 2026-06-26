@@ -7,7 +7,6 @@ class AuthMiddleware
 {
     public function handle(): void
     {
-        // Check session
         if (!empty($_SESSION['user_id'])) return;
 
         // Check remember-me cookie
@@ -19,16 +18,23 @@ class AuthMiddleware
             );
             if ($row && hash_equals($row['token_hash'], hash('sha256', $token))) {
                 $_SESSION['user_id']   = $row['user_id'];
-                $_SESSION['user_name'] = \App\DB::scalar('SELECT name FROM users WHERE id = ?', [$row['user_id']]);
+                $_SESSION['user_name'] = \App\DB::scalar(
+                    'SELECT name FROM users WHERE id = ?', [$row['user_id']]
+                );
                 return;
             }
-            // Invalid cookie — clear it
             setcookie('rentops_remember', '', time() - 3600, '/', '', false, true);
         }
 
-        // Redirect to login
-        $redirect = urlencode($_SERVER['REQUEST_URI'] ?? '/');
-        header("Location: /login?redirect={$redirect}");
+        // Redirect preserving the requested path (stripped of base) for post-login return
+        $requestUri = $_SERVER['REQUEST_URI'] ?? '/';
+        $base       = rtrim(\App\Helpers\UrlHelper::base(), '/');
+        $stripped   = $base !== '' && str_starts_with($requestUri, $base)
+            ? substr($requestUri, strlen($base))
+            : $requestUri;
+
+        $redirect = urlencode($stripped ?: '/');
+        header('Location: ' . url('/login') . '?redirect=' . $redirect);
         exit;
     }
 }

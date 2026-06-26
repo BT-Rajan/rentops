@@ -6,28 +6,35 @@ namespace App\Helpers;
 class Router
 {
     private array $routes = [];
-    private array $middleware = [];
 
-    public function get(string $path, callable|array $handler, array $middleware = []): void
+    public function get(string $path, array $handler, array $middleware = []): void
     {
         $this->add('GET', $path, $handler, $middleware);
     }
 
-    public function post(string $path, callable|array $handler, array $middleware = []): void
+    public function post(string $path, array $handler, array $middleware = []): void
     {
         $this->add('POST', $path, $handler, $middleware);
     }
 
-    private function add(string $method, string $path, mixed $handler, array $middleware): void
+    private function add(string $method, string $path, array $handler, array $middleware): void
     {
         $this->routes[] = compact('method', 'path', 'handler', 'middleware');
     }
 
     public function dispatch(): void
     {
-        $method  = $_SERVER['REQUEST_METHOD'];
-        $uri     = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-        $uri     = '/' . trim($uri, '/');
+        $method = $_SERVER['REQUEST_METHOD'];
+        $uri    = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+
+        // Strip APP_BASE prefix so subfolder installs route correctly
+        $base = rtrim(\App\Helpers\UrlHelper::base(), '/');
+        if ($base !== '' && str_starts_with($uri, $base)) {
+            $uri = substr($uri, strlen($base));
+        }
+
+        $uri = '/' . trim($uri, '/');
+        if ($uri === '') $uri = '/';
 
         foreach ($this->routes as $route) {
             if ($route['method'] !== $method) continue;
@@ -35,15 +42,14 @@ class Router
             $pattern = $this->toPattern($route['path']);
             if (!preg_match($pattern, $uri, $matches)) continue;
 
-            // Run middleware chain
+            // Run middleware
             foreach ($route['middleware'] as $mw) {
                 (new $mw())->handle();
             }
 
-            // Extract named params
+            // Named params only
             $params = array_filter($matches, 'is_string', ARRAY_FILTER_USE_KEY);
 
-            // Resolve handler
             [$class, $action] = $route['handler'];
             (new $class())->$action($params);
             return;

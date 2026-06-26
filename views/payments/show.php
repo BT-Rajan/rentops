@@ -9,7 +9,7 @@
 
 <div style="max-width:560px;margin:0 auto">
   <div class="d-flex align-center justify-between mb-20 no-print">
-    <a href="/dues" class="btn btn-ghost btn-sm" style="padding-left:0">← Back to dues</a>
+    <a href="<?= url("/dues") ?>" class="btn btn-ghost btn-sm" style="padding-left:0">← Back to dues</a>
     <button onclick="window.print()" class="btn btn-secondary btn-sm">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
       Print receipt
@@ -98,10 +98,10 @@
   </div>
 
   <div class="d-flex gap-8 mt-16 no-print" style="justify-content:center">
-    <a href="/payments/new?invoice_id=<?= htmlspecialchars($payment['invoice_id']) ?>" class="btn btn-secondary btn-sm">
+    <a href="<?= url("/payments/new?invoice_id=" . htmlspecialchars($payment['invoice_id'])) ?>" class="btn btn-secondary btn-sm">
       Record another payment
     </a>
-    <a href="/tenants/<?= htmlspecialchars(DB::scalar('SELECT tenant_id FROM tenancies WHERE id = (SELECT tenancy_id FROM rent_invoices WHERE id = ?)', [$payment['invoice_id']]) ?? '') ?>" class="btn btn-ghost btn-sm">
+    <a href="<?= url("/tenants/" . htmlspecialchars(DB::scalar('SELECT tenant_id FROM tenancies WHERE id = (SELECT tenancy_id FROM rent_invoices WHERE id = ?)', [$payment['invoice_id']]) ?? '')) ?>" class="btn btn-ghost btn-sm">
       View tenant
     </a>
   </div>

@@ -42,7 +42,7 @@
 
   <!-- Room occupancy -->
   <div class="card">
-    <div class="card-header"><span class="card-title">Rooms</span> <a href="/rooms" class="btn btn-ghost btn-sm">View all</a></div>
+    <div class="card-header"><span class="card-title">Rooms</span> <a href="<?= url("/rooms") ?>" class="btn btn-ghost btn-sm">View all</a></div>
     <div class="card-body" id="roomStats">
       <div class="text-muted text-sm">Loading…</div>
     </div>
@@ -59,7 +59,7 @@
 
 <!-- Recent payments -->
 <div class="card">
-  <div class="card-header"><span class="card-title">Recent payments</span> <a href="/dues" class="btn btn-ghost btn-sm">All dues</a></div>
+  <div class="card-header"><span class="card-title">Recent payments</span> <a href="<?= url("/dues") ?>" class="btn btn-ghost btn-sm">All dues</a></div>
   <div class="table-wrap">
     <table>
       <thead><tr><th>Tenant</th><th>Room</th><th>Amount</th><th>Mode</th><th>Date</th></tr></thead>
@@ -81,7 +81,7 @@
 
   async function load(month) {
     try {
-      const r = await fetch(`/api/dashboard?month=${month}`);
+      const r = await fetch(`${BASE}/api/dashboard?month=${month}`);
       const d = await r.json();
       const pct = d.collection_pct;
 
@@ -229,7 +229,7 @@
     this.disabled = true;
     this.textContent = 'Generating…';
     try {
-      const r = await fetch('/api/invoices/generate', {
+      const r = await fetch(BASE + '/api/invoices/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
         body: `_csrf=${encodeURIComponent(document.querySelector('[name="_csrf"]')?.value||'')}&month=${picker.value}`

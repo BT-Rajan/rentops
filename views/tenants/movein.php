@@ -1,12 +1,12 @@
 <div style="max-width:640px">
-  <a href="/tenants/<?= htmlspecialchars($tenant['id']) ?>" class="btn btn-ghost btn-sm" style="padding-left:0;margin-bottom:20px">← Back to tenant</a>
+  <a href="<?= url("/tenants/" . htmlspecialchars($tenant['id'])) ?>" class="btn btn-ghost btn-sm" style="padding-left:0;margin-bottom:20px">← Back to tenant</a>
 
   <div class="card">
     <div class="card-header">
       <span class="card-title">Move-in — <?= htmlspecialchars($tenant['full_name']) ?></span>
     </div>
     <div class="card-body">
-      <form action="/tenants/<?= htmlspecialchars($tenant['id']) ?>/movein" method="POST" novalidate>
+      <form action="<?= url("/tenants/" . htmlspecialchars($tenant['id']) . "/movein") ?>" method="POST" novalidate>
         <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
 
         <div class="form-group">
@@ -22,7 +22,7 @@
             <?php endforeach; ?>
           </select>
           <?php if (empty($rooms)): ?>
-            <div class="form-hint text-danger">No available rooms. <a href="/rooms">Manage rooms</a></div>
+            <div class="form-hint text-danger">No available rooms. <a href="<?= url("/rooms") ?>">Manage rooms</a></div>
           <?php endif; ?>
         </div>
 
@@ -60,7 +60,7 @@
 
         <div class="d-flex gap-12 mt-8">
           <button type="submit" class="btn btn-primary">Confirm move-in</button>
-          <a href="/tenants/<?= htmlspecialchars($tenant['id']) ?>" class="btn btn-secondary">Cancel</a>
+          <a href="<?= url("/tenants/" . htmlspecialchars($tenant['id'])) ?>" class="btn btn-secondary">Cancel</a>
         </div>
       </form>
     </div>
