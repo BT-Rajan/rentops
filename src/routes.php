@@ -14,7 +14,6 @@ use App\Controllers\ImportController;
 use App\Controllers\UploadController;
 use App\Controllers\TemplateController;
 use App\Middleware\AuthMiddleware;
-
 use App\Controllers\AuditController;
 use App\Controllers\RentChangeController;
 
