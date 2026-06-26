@@ -1,16 +1,32 @@
 Options -Indexes
 RewriteEngine On
 
-# Block direct access to sensitive dirs
-RewriteRule ^(src|database|vendor)/ - [F,L]
+# ── Block sensitive directories ───────────────────────────────────────────────
+RewriteRule ^(src|database|vendor|cron)/ - [F,L]
 
-# Route everything through index.php
-RewriteCond %{REQUEST_FILENAME} !-f
-RewriteCond %{REQUEST_FILENAME} !-d
+# ── Let real files and directories pass through directly ──────────────────────
+# This is the critical fix: CSS/JS/images must NOT be routed through index.php
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
+
+# ── Route everything else through the front controller ────────────────────────
 RewriteRule ^ index.php [QSA,L]
 
-# Security headers
-Header always set X-Content-Type-Options "nosniff"
-Header always set X-Frame-Options "SAMEORIGIN"
-Header always set X-XSS-Protection "1; mode=block"
-Header always set Referrer-Policy "strict-origin-when-cross-origin"
+# ── Security headers ──────────────────────────────────────────────────────────
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
+
+# ── Cache static assets ───────────────────────────────────────────────────────
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css              "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType image/jpeg            "access plus 1 month"
+    ExpiresByType image/png             "access plus 1 month"
+    ExpiresByType image/webp            "access plus 1 month"
+</IfModule>

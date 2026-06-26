@@ -1,5 +1,12 @@
--- RentOps Seed — run AFTER migration
--- Default password: RentOps@2024  (change immediately after first login)
+-- RentOps Seed — run AFTER all migrations
+-- ─────────────────────────────────────────
+-- Default login credentials:
+--   Email   : owner@rentops.local
+--   Password: RentOps@2024
+--
+-- IMPORTANT: Change the password immediately after first login
+--            via Settings → Change password
+-- ─────────────────────────────────────────
 
 SET NAMES utf8mb4;
 
@@ -8,7 +15,7 @@ INSERT IGNORE INTO users (id, name, email, password_hash) VALUES (
     '00000000-0000-0000-0000-000000000001',
     'Property Owner',
     'owner@rentops.local',
-    '$2y$12$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uQAfex3KI' -- RentOps@2024
+    '$2y$10$6aohplgnHoG9cYHA.sWkLu9fbNiXAe9Ae4OjJVmpCtEftn0tGPHNi'
 );
 
 -- ─── Property ─────────────────────────────────────────────────────────────────
