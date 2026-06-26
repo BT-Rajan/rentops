@@ -31,11 +31,23 @@ class AuditLog
 
     private static function ip(): string
     {
-        foreach (['HTTP_X_FORWARDED_FOR', 'REMOTE_ADDR'] as $key) {
-            if (!empty($_SERVER[$key])) {
-                return explode(',', $_SERVER[$key])[0];
+        // FIX B04: HTTP_X_FORWARDED_FOR is a client-controlled header — blindly
+        // trusting it lets any user spoof their IP in the audit log.
+        // Only use it when the app is explicitly configured to trust a reverse proxy
+        // (TRUSTED_PROXY=1 in .env), and always validate the extracted IP format.
+        $trustProxy = !empty($_ENV['TRUSTED_PROXY']);
+
+        if ($trustProxy && !empty($_SERVER['HTTP_X_FORWARDED_FOR'])) {
+            // X-Forwarded-For can be a comma-separated list; the left-most is the client
+            $candidates = array_map('trim', explode(',', $_SERVER['HTTP_X_FORWARDED_FOR']));
+            foreach ($candidates as $candidate) {
+                if (filter_var($candidate, FILTER_VALIDATE_IP, FILTER_FLAG_NO_PRIV_RANGE | FILTER_FLAG_NO_RES_RANGE)) {
+                    return $candidate;
+                }
             }
         }
-        return 'unknown';
+
+        // Fall back to the direct connection IP (always trustworthy)
+        return $_SERVER['REMOTE_ADDR'] ?? 'unknown';
     }
 }

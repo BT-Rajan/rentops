@@ -15,6 +15,10 @@ class RateLimiter
      * Check if an action is allowed for a given key.
      * Returns true if allowed, false if limit exceeded.
      *
+     * FIX B01: Hit is recorded ONLY when the request is within the limit.
+     * Previously the hit was always inserted after the check, giving attackers
+     * maxHits+1 attempts before lockout (e.g. 6 instead of 5 login tries).
+     *
      * @param string $key       e.g. 'login:127.0.0.1'
      * @param int    $maxHits   max attempts allowed
      * @param int    $windowSec rolling window in seconds
@@ -25,15 +29,16 @@ class RateLimiter
 
         $window = date('Y-m-d H:i:s', time() - $windowSec);
 
-        // Count recent hits
+        // Count recent hits within the rolling window
         $hits = (int)DB::scalar(
             "SELECT COUNT(*) FROM rate_limits WHERE `key` = ? AND created_at > ?",
             [$key, $window]
         );
 
+        // Reject before recording — do NOT insert a hit when already at the limit
         if ($hits >= $maxHits) return false;
 
-        // Record this hit
+        // Record this hit only when the request is permitted
         DB::query(
             "INSERT INTO rate_limits (`key`, created_at) VALUES (?, NOW())",
             [$key]

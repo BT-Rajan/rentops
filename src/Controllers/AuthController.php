@@ -57,6 +57,10 @@ class AuthController extends BaseController
         RateLimiter::clear($rlKey);
         session_regenerate_id(true);
 
+        // FIX B03: invalidate the pre-login CSRF token so it cannot be reused
+        // post-authentication. A new token is generated on the next csrfToken() call.
+        unset($_SESSION['csrf_token']);
+
         $_SESSION['user_id']   = $user['id'];
         $_SESSION['user_name'] = $user['name'];
 
@@ -76,7 +80,9 @@ class AuthController extends BaseController
         if (!empty($_COOKIE['rentops_remember'])) {
             [$selector] = explode(':', $_COOKIE['rentops_remember'], 2);
             DB::query('DELETE FROM remember_tokens WHERE selector = ?', [$selector]);
-            setcookie('rentops_remember', '', time() - 3600, '/', '', false, true);
+            // FIX B02: match the same secure flag used when the cookie was set
+            $secure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+            setcookie('rentops_remember', '', time() - 3600, '/', '', $secure, true);
         }
 
         AuditLog::record('logout', 'user', $_SESSION['user_id'] ?? null);
@@ -270,7 +276,10 @@ class AuthController extends BaseController
             [$userId, $selector, $tokenHash, $expires]
         );
 
-        setcookie('rentops_remember', "{$selector}:{$token}", time() + 7 * 24 * 3600, '/', '', false, true);
+        // FIX B02: secure flag is now derived from the actual request scheme.
+        // Previously hardcoded to false, meaning the token was sent over plain HTTP.
+        $secure = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+        setcookie('rentops_remember', "{$selector}:{$token}", time() + 7 * 24 * 3600, '/', '', $secure, true);
     }
 
     private function renderLoginError(string $error, ?int $remaining = null): void
