@@ -116,7 +116,10 @@ class TenantController extends BaseController
         $err = $this->requireFields(['full_name', 'phone']);
         if ($err) { $this->redirect('/tenants/new', $err, 'error'); return; }
 
-        $id = \Ramsey\Uuid\Uuid::uuid4()->toString();
+        // FIX B10/B17: Ramsey\Uuid is not installed in this codebase.
+        // Using it caused a fatal "class not found" error on every new tenant save.
+        // Replaced with UuidHelper::v4() which is the project-wide standard.
+        $id = $this->uuid();
 
         DB::insert('tenants', [
             'id'                => $id,

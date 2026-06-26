@@ -59,6 +59,18 @@ class DB
         return $val === false ? null : $val;
     }
 
+    /**
+     * Insert a row and return the last insert ID.
+     *
+     * FIX B15: For tables with CHAR(36) UUID primary keys, PDO::lastInsertId()
+     * returns "0" (not the UUID), because MySQL only tracks auto-increment IDs.
+     * This return value must NOT be used as the record ID when the PK is a UUID.
+     * Always include the UUID in $data['id'] and reference that variable directly
+     * after calling insert(). The return value is only meaningful for auto-increment
+     * integer PK tables (none currently exist in this schema).
+     *
+     * @return string Last auto-increment ID ("0" for UUID-keyed tables — do not use)
+     */
     public static function insert(string $table, array $data): string
     {
         $cols    = implode(',', array_map(fn($k) => "`{$k}`", array_keys($data)));

@@ -72,11 +72,22 @@ class ReportController extends BaseController
             ORDER BY r.room_number
         ", [$period]);
 
+        // FIX B21: Discard any buffered output (layout partials, PHP notices) before
+        // sending CSV headers. Without this, any prior output causes header() calls
+        // to silently fail, producing a corrupted download instead of a proper CSV.
+        while (ob_get_level() > 0) {
+            ob_end_clean();
+        }
+
         $filename = "RentOps_Report_{$month}.csv";
         header('Content-Type: text/csv; charset=utf-8');
         header("Content-Disposition: attachment; filename=\"{$filename}\"");
+        header('Cache-Control: no-cache, no-store, must-revalidate');
+        header('Pragma: no-cache');
 
         $out = fopen('php://output', 'w');
+        // UTF-8 BOM so Excel opens the file without encoding issues
+        fwrite($out, "\xEF\xBB\xBF");
         if (!empty($rows)) {
             fputcsv($out, array_keys($rows[0]));
             foreach ($rows as $row) fputcsv($out, $row);

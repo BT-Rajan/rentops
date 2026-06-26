@@ -34,9 +34,12 @@ try {
     )->rowCount();
     $log("Rate limit rows pruned   : {$limits}");
 
+    // FIX B18: MySQL does not support a bound parameter inside INTERVAL expressions.
+    // `INTERVAL ? DAY` with a PDO placeholder silently fails or throws a syntax error
+    // depending on the driver version. The value is already cast to int above, so
+    // interpolating it directly is safe — no SQL injection risk.
     $audit = \App\DB::query(
-        "DELETE FROM audit_log WHERE created_at < DATE_SUB(NOW(), INTERVAL ? DAY)",
-        [$auditDays]
+        "DELETE FROM audit_log WHERE created_at < DATE_SUB(NOW(), INTERVAL {$auditDays} DAY)"
     )->rowCount();
     $log("Audit log rows pruned    : {$audit} (>{$auditDays}d)");
 
