@@ -76,7 +76,7 @@
     <?php else: ?>
     <div class="empty-state">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
-      <p>No tenants found<?= $search ? " for "$search"" : '' ?>.</p>
+      <p>No tenants found<?= $search ? ' for "' . htmlspecialchars($search) . '"' : '' ?>.</p>
       <a href="<?= url("/tenants/new") ?>" class="btn btn-primary btn-sm" style="margin-top:12px">+ Add first tenant</a>
     </div>
     <?php endif; ?>
