@@ -26,23 +26,32 @@ class TenantController extends BaseController
             array_push($bind, $like, $like, $like);
         }
 
+        // Rewritten from correlated subqueries to LEFT JOINs:
+        //  - Correlated subqueries in SELECT + ORDER BY alias caused a fatal on
+        //    MySQL 5.7 (alias from subquery not visible to ORDER BY).
+        //  - Derived tables are resolved before ORDER BY, so the aliases are safe.
+        //  - Also significantly faster: one pass per tenant instead of N subqueries.
         $tenants = DB::rows("
             SELECT t.*,
                    r.room_number,
                    te.agreed_rent,
                    te.move_in_date,
                    te.id AS tenancy_id,
-                   COALESCE((SELECT SUM(amount_due) - SUM(amount_paid)
-                              FROM rent_invoices
-                              WHERE tenancy_id = te.id AND status != 'paid'), 0) AS outstanding,
-                   COALESCE((SELECT COUNT(*)
-                              FROM rent_invoices
-                              WHERE tenancy_id = te.id AND status = 'overdue'), 0) AS overdue_count
+                   COALESCE(inv.outstanding, 0)   AS outstanding,
+                   COALESCE(inv.overdue_count, 0) AS overdue_count
             FROM tenants t
             LEFT JOIN tenancies te ON te.tenant_id = t.id AND te.status = 'active'
             LEFT JOIN rooms r      ON r.id = te.room_id
+            LEFT JOIN (
+                SELECT tenancy_id,
+                       SUM(amount_due - amount_paid) AS outstanding,
+                       SUM(CASE WHEN status = 'overdue' THEN 1 ELSE 0 END) AS overdue_count
+                FROM rent_invoices
+                WHERE status != 'paid'
+                GROUP BY tenancy_id
+            ) inv ON inv.tenancy_id = te.id
             {$where}
-            ORDER BY overdue_count DESC, t.full_name
+            ORDER BY COALESCE(inv.overdue_count, 0) DESC, t.full_name
         ", $bind);
 
         $this->render('tenants/index', [
