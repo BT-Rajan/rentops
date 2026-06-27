@@ -13,45 +13,45 @@ class TenantController extends BaseController
         $status = $_GET['status'] ?? 'active';
         $search = trim($_GET['q'] ?? '');
 
-        $where  = 'WHERE 1=1';
-        $bind   = [];
+        $statusCond = '';
+        $searchCond = '';
+        $bind       = [];
 
         if (in_array($status, ['active', 'vacated'])) {
-            $where .= ' AND t.status = ?';
-            $bind[] = $status;
+            $statusCond = ' AND t.status = ?';
+            $bind[]     = $status;
         }
         if ($search) {
-            $where .= ' AND (t.full_name LIKE ? OR t.phone LIKE ? OR r.room_number LIKE ?)';
-            $like   = "%{$search}%";
+            $searchCond = ' AND (t.full_name LIKE ? OR t.phone LIKE ? OR r.room_number LIKE ?)';
+            $like       = "%{$search}%";
             array_push($bind, $like, $like, $like);
         }
 
-        // Rewritten from correlated subqueries to LEFT JOINs:
-        //  - Correlated subqueries in SELECT + ORDER BY alias caused a fatal on
-        //    MySQL 5.7 (alias from subquery not visible to ORDER BY).
-        //  - Derived tables are resolved before ORDER BY, so the aliases are safe.
-        //  - Also significantly faster: one pass per tenant instead of N subqueries.
+        // Fully MariaDB 10.4 compatible:
+        //  - No derived-table alias referenced in ORDER BY (MariaDB 10.4 rejects this)
+        //  - No correlated subqueries in SELECT (slow, alias invisible to ORDER BY)
+        //  - Wrap in outer SELECT so computed columns are ORDER BY-safe on all versions
         $tenants = DB::rows("
-            SELECT t.*,
-                   r.room_number,
-                   te.agreed_rent,
-                   te.move_in_date,
-                   te.id AS tenancy_id,
-                   COALESCE(inv.outstanding, 0)   AS outstanding,
-                   COALESCE(inv.overdue_count, 0) AS overdue_count
-            FROM tenants t
-            LEFT JOIN tenancies te ON te.tenant_id = t.id AND te.status = 'active'
-            LEFT JOIN rooms r      ON r.id = te.room_id
-            LEFT JOIN (
-                SELECT tenancy_id,
-                       SUM(amount_due - amount_paid) AS outstanding,
-                       SUM(CASE WHEN status = 'overdue' THEN 1 ELSE 0 END) AS overdue_count
-                FROM rent_invoices
-                WHERE status != 'paid'
-                GROUP BY tenancy_id
-            ) inv ON inv.tenancy_id = te.id
-            {$where}
-            ORDER BY COALESCE(inv.overdue_count, 0) DESC, t.full_name
+            SELECT *
+            FROM (
+                SELECT t.*,
+                       r.room_number,
+                       te.agreed_rent,
+                       te.move_in_date,
+                       te.id                                                        AS tenancy_id,
+                       COALESCE(SUM(CASE WHEN ri.status != 'paid'
+                                         THEN ri.amount_due - ri.amount_paid
+                                         ELSE 0 END), 0)                           AS outstanding,
+                       COALESCE(SUM(CASE WHEN ri.status = 'overdue' THEN 1 ELSE 0 END), 0)
+                                                                                   AS overdue_count
+                FROM tenants t
+                LEFT JOIN tenancies te ON te.tenant_id = t.id AND te.status = 'active'
+                LEFT JOIN rooms r      ON r.id = te.room_id
+                LEFT JOIN rent_invoices ri ON ri.tenancy_id = te.id
+                WHERE 1=1{$statusCond}{$searchCond}
+                GROUP BY t.id, r.room_number, te.agreed_rent, te.move_in_date, te.id
+            ) AS sub
+            ORDER BY overdue_count DESC, full_name
         ", $bind);
 
         $this->render('tenants/index', [

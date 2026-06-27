@@ -31,7 +31,8 @@
       <tbody>
         <?php foreach ($tenants as $t): ?>
         <?php
-          $initials = implode('', array_map(fn($w) => strtoupper($w[0]), array_slice(explode(' ', $t['full_name']), 0, 2)));
+          $words    = array_filter(explode(' ', $t['full_name']));
+          $initials = implode('', array_map(fn($w) => strtoupper($w[0]), array_slice(array_values($words), 0, 2)));
           $outstanding = (float)$t['outstanding'];
         ?>
         <tr>
