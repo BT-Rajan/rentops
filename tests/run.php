@@ -746,18 +746,132 @@ ok('New token is 64 hex chars', strlen($_SESSION['csrf_token']) === 64);
 // ══════════════════════════════════════════════════════════════════════════════
 // RESULTS
 // ══════════════════════════════════════════════════════════════════════════════
-echo "\n" . str_repeat('─', 60) . "\n";
-$total = $pass + $fail;
+// SUITE 23: assets/ moved to public/assets/ (nav fix)
+// ══════════════════════════════════════════════════════════════════════════════
+suite('Assets — CSS/JS files are inside public/ (nav fix)');
 
-if ($fail === 0) {
-    echo "\033[1;32m  ✓ All {$total} tests passed\033[0m\n\n";
-} else {
-    echo "\033[1;32m  ✓ {$pass} passed\033[0m  \033[1;31m✗ {$fail} failed\033[0m  (total {$total})\n\n";
-    echo "\033[1;31mFailed tests:\033[0m\n";
-    foreach ($failures as $f) {
-        echo "  • {$f}\n";
-    }
-    echo "\n";
+ok('public/assets/css/main.css exists',       file_exists(ROOT . '/public/assets/css/main.css'));
+ok('public/assets/css/responsive.css exists', file_exists(ROOT . '/public/assets/css/responsive.css'));
+ok('public/assets/js/app.js exists',          file_exists(ROOT . '/public/assets/js/app.js'));
+ok('Root-level assets/ folder is gone',       !is_dir(ROOT . '/assets'));
+
+// asset() helper resolves to public/assets/ subpath correctly
+$assetUrl = \App\Helpers\UrlHelper::asset('/assets/css/main.css');
+eq('asset("/assets/css/main.css") → /rentops/public/assets/css/main.css',
+    $assetUrl, '/rentops/public/assets/css/main.css');
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SUITE 24: Navigation — BASE prefix consistent (nav fix)
+// ══════════════════════════════════════════════════════════════════════════════
+suite('Navigation — url() and BASE produce consistent paths');
+
+$base = rtrim(\App\Helpers\UrlHelper::base(), '/');
+eq('BASE = /rentops/public', $base, '/rentops/public');
+
+$routes = [
+    '/login'        => '/rentops/public/login',
+    '/dashboard'    => '/rentops/public/dashboard',
+    '/rooms'        => '/rentops/public/rooms',
+    '/tenants'      => '/rentops/public/tenants',
+    '/tenants/new'  => '/rentops/public/tenants/new',
+    '/payments/new' => '/rentops/public/payments/new',
+    '/dues'         => '/rentops/public/dues',
+    '/reports'      => '/rentops/public/reports',
+    '/settings'     => '/rentops/public/settings',
+    '/audit'        => '/rentops/public/audit',
+    '/import'       => '/rentops/public/import',
+    '/logout'       => '/rentops/public/logout',
+];
+foreach ($routes as $path => $expected) {
+    eq("url('{$path}') → {$expected}", \App\Helpers\UrlHelper::url($path), $expected);
 }
 
-exit($fail > 0 ? 1 : 0);
+// ══════════════════════════════════════════════════════════════════════════════
+// SUITE 25: BaseController — uuid() available to all controllers
+// ══════════════════════════════════════════════════════════════════════════════
+suite('BaseController — uuid() is a protected method on BaseController');
+
+$rc = new ReflectionClass(\App\Controllers\BaseController::class);
+ok('uuid() exists on BaseController', $rc->hasMethod('uuid'));
+$m = $rc->getMethod('uuid');
+ok('uuid() is protected', $m->isProtected());
+
+// Verify no private uuid() duplicates remain in TenantController / PaymentController
+$tcRef = new ReflectionClass(\App\Controllers\TenantController::class);
+$pcRef = new ReflectionClass(\App\Controllers\PaymentController::class);
+
+$tcHasPrivate = false;
+foreach ($tcRef->getMethods(ReflectionMethod::IS_PRIVATE) as $method) {
+    if ($method->getName() === 'uuid' && $method->getDeclaringClass()->getName() === \App\Controllers\TenantController::class) {
+        $tcHasPrivate = true;
+    }
+}
+$pcHasPrivate = false;
+foreach ($pcRef->getMethods(ReflectionMethod::IS_PRIVATE) as $method) {
+    if ($method->getName() === 'uuid' && $method->getDeclaringClass()->getName() === \App\Controllers\PaymentController::class) {
+        $pcHasPrivate = true;
+    }
+}
+ok('TenantController has no private uuid() duplicate', !$tcHasPrivate);
+ok('PaymentController has no private uuid() duplicate', !$pcHasPrivate);
+
+// uuid() is callable on a concrete controller subclass via inheritance
+$dash = new \App\Controllers\DashboardController();
+$refUuid = (new ReflectionClass($dash))->getMethod('uuid');
+$refUuid->setAccessible(true);
+$result = $refUuid->invoke($dash);
+ok('uuid() callable on DashboardController via inheritance',
+    (bool)preg_match('/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/', $result));
+
+// ══════════════════════════════════════════════════════════════════════════════
+// SUITE 26: flash always passed to render (nav fix)
+// ══════════════════════════════════════════════════════════════════════════════
+suite('Flash — all app-layout render() calls include flash key');
+
+// Controllers that never call render() with app layout
+$skipControllers = [
+    'BaseController.php',       // defines render(), doesn't call it
+    'UploadController.php',     // only json()
+    'RentChangeController.php', // only json()/redirect()
+    'TemplateController.php',   // CSV output, no layout
+];
+
+$missing = [];
+
+foreach (glob(ROOT . '/src/Controllers/*.php') as $file) {
+    if (in_array(basename($file), $skipControllers)) continue;
+
+    $lines = file($file);
+    $inRender = false;
+    $blockLines = [];
+    $depth = 0;
+
+    foreach ($lines as $line) {
+        if (!$inRender && preg_match('/\$this->render\(/', $line)) {
+            $inRender = true;
+            $depth = 0;
+            $blockLines = [];
+        }
+        if ($inRender) {
+            $blockLines[] = $line;
+            $depth += substr_count($line, '[') - substr_count($line, ']');
+            // Block ends when brackets are balanced and we hit closing paren
+            if ($depth <= 0 && str_contains($line, ')')) {
+                $block = implode('', $blockLines);
+                // Skip auth/none layout renders — they have no flash slot
+                if (!preg_match("/'(auth|none)'\s*\)/", $block)) {
+                    if (!str_contains($block, "'flash'")) {
+                        $snippet = trim(substr($block, 0, 80));
+                        $missing[] = basename($file) . ': ' . $snippet;
+                    }
+                }
+                $inRender = false;
+                $blockLines = [];
+            }
+        }
+    }
+}
+
+ok('All app-layout render() calls include flash key', count($missing) === 0,
+    count($missing) > 0 ? "\n      " . implode("\n      ", $missing) : '');
+

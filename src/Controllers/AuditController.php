@@ -49,6 +49,7 @@ class AuditController extends BaseController
             'pageTitle' => 'Data Audit',
             'results'   => $results,
             'stats'     => $stats,
+            'flash'     => $this->flash(),
             'user'      => $this->currentUser(),
             'csrf'      => $this->csrfToken(),
         ]);
@@ -110,6 +111,7 @@ class AuditController extends BaseController
             'total'     => $total,
             'page'      => $page,
             'pages'     => (int)ceil($total / $limit),
+            'flash'     => $this->flash(),
             'user'      => $this->currentUser(),
         ]);
     }

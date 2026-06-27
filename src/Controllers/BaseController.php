@@ -92,4 +92,13 @@ abstract class BaseController
             'name' => $_SESSION['user_name'] ?? 'Owner',
         ];
     }
+
+    /**
+     * Generate a UUID v4 via the central UuidHelper (CSPRNG-based, B14 fix).
+     * Available to every controller without copy-paste.
+     */
+    protected function uuid(): string
+    {
+        return \App\Helpers\UuidHelper::v4();
+    }
 }

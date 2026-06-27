@@ -124,7 +124,7 @@ function updateBulk() {
     bulkCount.textContent = sel.length + ' selected';
     bulkBar.style.display = 'flex';
     document.getElementById('bulkReminder').href =
-      '/reminders?ids=' + sel.map(c => c.value).join(',');
+      BASE + '/reminders?ids=' + sel.map(c => c.value).join(',');
   } else {
     bulkBar.style.display = 'none';
   }

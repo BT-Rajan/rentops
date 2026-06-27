@@ -105,6 +105,7 @@ class TenantController extends BaseController
         $this->render('tenants/create', [
             'pageTitle' => 'Add Tenant',
             'rooms'     => $rooms,
+            'flash'     => $this->flash(),
             'csrf'      => $this->csrfToken(),
             'user'      => $this->currentUser(),
         ]);
@@ -163,6 +164,7 @@ class TenantController extends BaseController
             'pageTitle' => 'Move In — ' . htmlspecialchars($tenant['full_name']),
             'tenant'    => $tenant,
             'rooms'     => $rooms,
+            'flash'     => $this->flash(),
             'csrf'      => $this->csrfToken(),
             'user'      => $this->currentUser(),
         ]);
@@ -224,6 +226,7 @@ class TenantController extends BaseController
             'pageTitle' => 'Move Out — ' . htmlspecialchars($tenant['full_name']),
             'tenant'    => $tenant,
             'tenancy'   => $tenancy,
+            'flash'     => $this->flash(),
             'csrf'      => $this->csrfToken(),
             'user'      => $this->currentUser(),
         ]);
@@ -254,8 +257,5 @@ class TenantController extends BaseController
         }
     }
 
-    private function uuid(): string
-    {
-        return \App\Helpers\UuidHelper::v4();
-    }
+    // uuid() inherited from BaseController
 }

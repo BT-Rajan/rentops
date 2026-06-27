@@ -45,6 +45,7 @@ class ReportController extends BaseController
             'month'     => $month,
             'summary'   => $summary,
             'rows'      => $rows,
+            'flash'     => $this->flash(),
             'user'      => $this->currentUser(),
         ]);
     }

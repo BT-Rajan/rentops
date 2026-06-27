@@ -24,6 +24,10 @@ $_ENV['TRUSTED_PROXY']= '0';
 
 date_default_timezone_set('Asia/Kolkata');
 
+// Initialise UrlHelper so url() / asset() work the same as production
+require_once ROOT . '/src/Helpers/UrlHelper.php';
+\App\Helpers\UrlHelper::init($_ENV['APP_URL']);
+
 // ── Fake session for controllers that read $_SESSION ─────────────────────────
 if (session_status() === PHP_SESSION_NONE) {
     $_SESSION = [];

@@ -61,6 +61,7 @@ class ImportController extends BaseController
             'pageTitle' => 'Import Preview',
             'valid'     => $valid,
             'errors'    => $errors,
+            'flash'     => $this->flash(),
             'user'      => $this->currentUser(),
             'csrf'      => $this->csrfToken(),
         ]);

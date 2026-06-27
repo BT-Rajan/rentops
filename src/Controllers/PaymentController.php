@@ -39,6 +39,7 @@ class PaymentController extends BaseController
             'pageTitle'  => 'Record Payment',
             'invoice'    => $invoice,
             'invoices'   => $invoices,
+            'flash'      => $this->flash(),
             'csrf'       => $this->csrfToken(),
             'user'       => $this->currentUser(),
         ]);
@@ -118,12 +119,10 @@ class PaymentController extends BaseController
         $this->render('payments/show', [
             'pageTitle' => 'Payment Receipt',
             'payment'   => $payment,
+            'flash'     => $this->flash(),
             'user'      => $this->currentUser(),
         ]);
     }
 
-    private function uuid(): string
-    {
-        return \App\Helpers\UuidHelper::v4();
-    }
+    // uuid() inherited from BaseController
 }

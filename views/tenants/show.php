@@ -113,12 +113,12 @@ $invMap   = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid'
           <div class="d-flex align-center justify-between mb-10">
             <?php $ext = strtolower(pathinfo($tenant['id_proof_file'], PATHINFO_EXTENSION)); ?>
             <?php if (in_array($ext, ['jpg','jpeg','png','webp'])): ?>
-              <a href="<?= htmlspecialchars($tenant['id_proof_file']) ?>" target="_blank">
-                <img src="<?= htmlspecialchars($tenant['id_proof_file']) ?>" alt="ID proof"
+              <a href="<?= url(htmlspecialchars($tenant['id_proof_file'])) ?>" target="_blank">
+                <img src="<?= url(htmlspecialchars($tenant['id_proof_file'])) ?>" alt="ID proof"
                      style="max-width:100%;border-radius:var(--radius);border:1px solid var(--border)">
               </a>
             <?php else: ?>
-              <a href="<?= htmlspecialchars($tenant['id_proof_file']) ?>" target="_blank" class="btn btn-secondary btn-sm">
+              <a href="<?= url(htmlspecialchars($tenant['id_proof_file'])) ?>" target="_blank" class="btn btn-secondary btn-sm">
                 📄 View PDF
               </a>
             <?php endif; ?>

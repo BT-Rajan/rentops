@@ -31,6 +31,7 @@ class ReminderController extends BaseController
             'pageTitle' => 'Reminder Generator',
             'overdue'   => $overdue,
             'month'     => $month,
+            'flash'     => $this->flash(),
             'csrf'      => $this->csrfToken(),
             'user'      => $this->currentUser(),
         ]);
