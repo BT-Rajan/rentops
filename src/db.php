@@ -96,6 +96,8 @@ class DB
     public static function inTransaction(): bool     { return self::$pdo->inTransaction(); }
 }
 
-// Bootstrap connection
-global $config;
-\App\DB::connect($config['db']);
+// Bootstrap connection (skipped in test mode — tests inject their own PDO)
+if (!defined('TEST_MODE')) {
+    global $config;
+    \App\DB::connect($config['db']);
+}
