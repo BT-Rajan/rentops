@@ -24,8 +24,15 @@ class DuesController extends BaseController
             $where .= " AND ri.status IN ('unpaid','partial','overdue')";
         }
 
-        // Refresh overdue statuses before listing
-        (new RentEngine())->refreshOverdueStatus();
+        // FIX B23: refreshOverdueStatus() runs an unbounded UPDATE on every dues page
+        // load. With many invoices this adds unnecessary DB load on every request.
+        // The daily cron handles the authoritative sweep; the on-demand call here is
+        // only a convenience safety net. Throttle it to at most once per hour per session.
+        $lastRefresh = $_SESSION['overdue_refresh_ts'] ?? 0;
+        if (time() - $lastRefresh > 3600) {
+            (new RentEngine())->refreshOverdueStatus();
+            $_SESSION['overdue_refresh_ts'] = time();
+        }
 
         $dues = DB::rows("
             SELECT ri.*,

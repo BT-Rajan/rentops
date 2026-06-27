@@ -72,10 +72,29 @@ class RoomController extends BaseController
         $room = DB::row('SELECT * FROM rooms WHERE id = ?', [$params['id']]);
         if (!$room) { http_response_code(404); return; }
 
+        // FIX B20: room_type and status are MySQL ENUMs. Without whitelist validation
+        // an invalid POST value reaches the DB and throws a raw PDO exception the user
+        // never sees as a friendly message. Validate here so we can redirect with a
+        // clear error instead of a 500.
+        $allowedStatuses   = ['vacant', 'occupied', 'partially_occupied', 'maintenance'];
+        $allowedRoomTypes  = ['single', 'sharing', 'dorm'];
+
+        $status   = $_POST['status']    ?? $room['status'];
+        $roomType = $_POST['room_type'] ?? $room['room_type'];
+
+        if (!in_array($status, $allowedStatuses, true)) {
+            $this->redirect("/rooms/{$params['id']}", "Invalid status '{$status}'.", 'error');
+            return;
+        }
+        if (!in_array($roomType, $allowedRoomTypes, true)) {
+            $this->redirect("/rooms/{$params['id']}", "Invalid room type '{$roomType}'.", 'error');
+            return;
+        }
+
         DB::update('rooms', [
-            'base_rent'   => (float)($_POST['base_rent'] ?? $room['base_rent']),
-            'room_type'   => $_POST['room_type']   ?? $room['room_type'],
-            'status'      => $_POST['status']       ?? $room['status'],
+            'base_rent' => (float)($_POST['base_rent'] ?? $room['base_rent']),
+            'room_type' => $roomType,
+            'status'    => $status,
         ], 'id = ?', [$params['id']]);
 
         $this->redirect("/rooms/{$params['id']}", 'Room updated successfully.');

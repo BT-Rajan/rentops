@@ -73,40 +73,40 @@ INSERT IGNORE INTO tenancies
      rent_due_day, status)
 VALUES
 -- Mani → Room 101 (single, ₹9000), moved in 8 months ago
-(   @ten_mani, @mani, 'r01',
+(   @ten_mani, @mani, '2eea5546-7d09-5cea-b98d-0e0ec843b774',
     DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 8 MONTH), '%Y-%m-01'),
     NULL, 9000.00, 18000.00, NULL, NULL, 5, 'active'),
 
 -- Arun → Room 105 (sharing, ₹6000), moved in 5 months ago
-(   @ten_arun, @arun, 'r05',
+(   @ten_arun, @arun, '73fff802-f083-5d77-bc4c-76263a8c6011',
     DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 5 MONTH), '%Y-%m-01'),
     NULL, 6000.00, 12000.00, NULL, NULL, 5, 'active'),
 
 -- Santhosh → Room 102 (single, ₹9000), moved in 4 months ago
-(   @ten_sant, @santhosh, 'r02',
+(   @ten_sant, @santhosh, 'bcf02df4-b810-5ee2-9535-63a591d2b664',
     DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 4 MONTH), '%Y-%m-01'),
     NULL, 9000.00, 18000.00, NULL, NULL, 5, 'active'),
 
 -- Guruprasad → Room 301 (single, now ₹10500 after hike), moved in 6 months ago
-(   @ten_guru, @guru, 'r13',
+(   @ten_guru, @guru, '21bd281e-c37d-5039-bcd8-0c881472a094',
     DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 6 MONTH), '%Y-%m-01'),
     NULL, 10500.00, 21000.00, NULL, NULL, 5, 'active'),
 
 -- Mohammed Rizwan → Room G03 (dorm, ₹4500), moved in 3 months ago
-(   @ten_rizw, @rizwan, 'r21',
+(   @ten_rizw, @rizwan, '77025690-bca5-5d6f-81be-c4b9e432948f',
     DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 3 MONTH), '%Y-%m-01'),
     NULL, 4500.00, 9000.00, NULL, NULL, 5, 'active'),
 
 -- Sayon → Room 102 — wait, r02 is taken by Santhosh; Sayon used r03, now vacated
 -- Move-out happened last month, deposit partially deducted (₹2000 for damages)
-(   @ten_sayo, @sayon, 'r03',
+(   @ten_sayo, @sayon, '6e0c49b0-0b19-56bd-a400-8dc7c7331db1',
     DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 7 MONTH), '%Y-%m-01'),
     DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL 1 MONTH), '%Y-%m-28'),
     9000.00, 18000.00, 2000.00, 16000.00, 5, 'closed');
 
 -- Update room statuses to match tenancies
-UPDATE rooms SET status = 'occupied'       WHERE id IN ('r01','r02','r05','r13','r21');
-UPDATE rooms SET status = 'vacant'         WHERE id = 'r03';  -- Sayon vacated
+UPDATE rooms SET status = 'occupied'       WHERE id IN ('2eea5546-7d09-5cea-b98d-0e0ec843b774','bcf02df4-b810-5ee2-9535-63a591d2b664','73fff802-f083-5d77-bc4c-76263a8c6011','21bd281e-c37d-5039-bcd8-0c881472a094','77025690-bca5-5d6f-81be-c4b9e432948f');
+UPDATE rooms SET status = 'vacant'         WHERE id = '6e0c49b0-0b19-56bd-a400-8dc7c7331db1';  -- Sayon vacated
 
 -- ─── RENT CHANGES — Guruprasad had a hike 3 months ago ───────────────────────
 

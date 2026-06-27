@@ -1,0 +1,26 @@
+# ─── Environment & secrets ────────────────────────────────────────────────────
+# FIX B24: .env was committed to the repo, exposing DB credentials and secrets.
+# Only .env.example (with placeholder values) should ever be committed.
+.env
+.env.local
+.env.*.local
+
+# ─── PHP / Composer ───────────────────────────────────────────────────────────
+vendor/
+composer.lock
+
+# ─── Runtime / temp files ─────────────────────────────────────────────────────
+# Import staging files written by ImportController (B22 fix)
+/tmp/rentops_import_*.json
+
+# ─── Uploads ──────────────────────────────────────────────────────────────────
+# Tenant documents uploaded at runtime — not source-controlled
+public/uploads/
+
+# ─── OS & editor artefacts ────────────────────────────────────────────────────
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*.swo

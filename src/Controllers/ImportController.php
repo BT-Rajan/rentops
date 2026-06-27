@@ -45,9 +45,17 @@ class ImportController extends BaseController
             }
         }
 
-        // Store validated rows in session for confirm step
-        $_SESSION['import_rows']   = $valid;
-        $_SESSION['import_errors'] = $errors;
+        // FIX B22: Storing large arrays in $_SESSION can exceed PHP's session file
+        // size limit (~1MB default) for imports of 100+ rows with many fields.
+        // Write validated rows to a temp file keyed by session ID instead, and store
+        // only the file path + row count in the session. The file is cleaned up in
+        // confirm() whether or not the import succeeds.
+        $tmpFile = sys_get_temp_dir() . '/rentops_import_' . session_id() . '.json';
+        file_put_contents($tmpFile, json_encode($valid));
+
+        $_SESSION['import_tmp_file']  = $tmpFile;
+        $_SESSION['import_row_count'] = count($valid);
+        $_SESSION['import_errors']    = $errors; // errors are small strings, safe in session
 
         $this->render('import/preview', [
             'pageTitle' => 'Import Preview',
@@ -62,9 +70,22 @@ class ImportController extends BaseController
     {
         $this->verifyCsrf();
 
-        $rows = $_SESSION['import_rows'] ?? [];
-        if (empty($rows)) {
+        // FIX B22: Read rows from temp file, not session
+        $tmpFile = $_SESSION['import_tmp_file'] ?? null;
+
+        // Always clean up session keys — even on error paths below
+        unset($_SESSION['import_tmp_file'], $_SESSION['import_row_count'], $_SESSION['import_errors']);
+
+        if (!$tmpFile || !file_exists($tmpFile)) {
             $this->redirect('/import', 'No rows to import. Upload CSV again.', 'error');
+            return;
+        }
+
+        $rows = json_decode(file_get_contents($tmpFile), true) ?? [];
+        @unlink($tmpFile); // delete temp file immediately after reading
+
+        if (empty($rows)) {
+            $this->redirect('/import', 'No valid rows found. Upload CSV again.', 'error');
             return;
         }
 
@@ -86,8 +107,6 @@ class ImportController extends BaseController
             $this->redirect('/import', 'Import failed: ' . $e->getMessage(), 'error');
             return;
         }
-
-        unset($_SESSION['import_rows'], $_SESSION['import_errors']);
 
         $msg = "Import complete — {$imported} imported, {$skipped} skipped (already exist).";
         if ($failLog) $msg .= ' ' . count($failLog) . ' rows had errors.';
