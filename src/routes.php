@@ -64,7 +64,9 @@ $router->post('/api/invoices/generate',     [DuesController::class, 'generate'],
 
 // Reminders
 $router->get('/reminders',                  [ReminderController::class, 'index'],    $auth);
-$router->post('/reminders/preview',         [ReminderController::class, 'preview'],  $auth);
+$router->post('/reminders/send',            [ReminderController::class, 'send'],     $auth);
+$router->post('/reminders/{id}/resend',     [ReminderController::class, 'resend'],   $auth);
+$router->get('/reminders/{id}/detail',      [ReminderController::class, 'detail'],   $auth);
 
 // Reports
 $router->get('/reports',                    [ReportController::class, 'index'],      $auth);
