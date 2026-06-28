@@ -64,7 +64,12 @@ foreach ($tenancies as $te) {
 
         <?php if (!$active): ?>
         <div class="mt-16">
-          <a href="<?= url("/tenants/new") ?>" class="btn btn-primary w-full" style="justify-content:center">+ Add Tenant</a>
+          <?php if ($room['status'] === 'occupied'): ?>
+            <button class="btn btn-primary w-full" style="justify-content:center;opacity:.45;cursor:not-allowed" disabled title="Room is occupied">+ Add Tenant</button>
+            <p class="text-sm text-danger" style="text-align:center;margin-top:6px">Room is occupied</p>
+          <?php else: ?>
+            <a href="<?= url("/tenants/new") ?>" class="btn btn-primary w-full" style="justify-content:center">+ Add Tenant</a>
+          <?php endif; ?>
         </div>
         <?php endif; ?>
       </div>
