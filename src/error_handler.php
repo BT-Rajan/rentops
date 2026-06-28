@@ -14,8 +14,17 @@ set_exception_handler(function (\Throwable $e): void {
 
     if (headers_sent()) return;
     http_response_code(500);
-    header('Content-Type: text/html; charset=utf-8');
 
+    // Return JSON for AJAX/fetch requests so the JS layer can surface the error
+    $wantsJson = isset($_SERVER['HTTP_ACCEPT']) && str_contains($_SERVER['HTTP_ACCEPT'], 'application/json')
+              || isset($_SERVER['HTTP_X_REQUESTED_WITH']);
+    if ($wantsJson) {
+        header('Content-Type: application/json');
+        echo json_encode(['ok' => false, 'error' => $isDev ? $e->getMessage() : 'Internal server error']);
+        exit;
+    }
+
+    header('Content-Type: text/html; charset=utf-8');
     if ($isDev) {
         echo '<pre style="font-family:monospace;padding:20px;background:#fef2f2;color:#991b1b">';
         echo htmlspecialchars((string)$e);

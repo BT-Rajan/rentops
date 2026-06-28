@@ -75,9 +75,19 @@ class DuesController extends BaseController
     public function generate(array $params = []): void
     {
         $this->verifyCsrf();
-        $month   = $_POST['month'] ?? date('Y-m');
-        $engine  = new RentEngine();
-        $created = $engine->generateMonthlyInvoices($month);
-        $this->json(['created' => $created, 'month' => $month]);
+        try {
+            $month = trim($_POST['month'] ?? date('Y-m'));
+            // Validate format — input[type=month] sends Y-m, guard against empty/garbage
+            if (!preg_match('/^\d{4}-\d{2}$/', $month)) {
+                $this->json(['ok' => false, 'error' => 'Invalid month format'], 422);
+                return;
+            }
+            $engine  = new RentEngine();
+            $created = $engine->generateMonthlyInvoices($month);
+            $this->json(['ok' => true, 'created' => $created, 'month' => $month]);
+        } catch (\Throwable $e) {
+            error_log('[RentOps] generate invoices: ' . $e->getMessage());
+            $this->json(['ok' => false, 'error' => $e->getMessage()], 500);
+        }
     }
 }

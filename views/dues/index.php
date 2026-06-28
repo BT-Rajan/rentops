@@ -146,16 +146,19 @@ document.getElementById('generateBtn').addEventListener('click', async function 
   try {
     const r = await fetch(BASE + '/api/invoices/generate', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
       body: `_csrf=${encodeURIComponent(DUES_CSRF)}&month=${encodeURIComponent(month)}`
     });
-    if (!r.ok) { alert('Server error ' + r.status + '. Please reload and try again.'); return; }
-    const d = await r.json();
+    const d = await r.json().catch(() => null);
+    if (!r.ok || !d?.ok) {
+      alert('Error: ' + (d?.error || 'Server error ' + r.status + '. Check PHP logs.'));
+      return;
+    }
     if (d.created > 0) {
       alert(`Generated ${d.created} invoice(s) for ${month}.`);
       location.reload();
     } else {
-      alert(`Invoices for ${month} already exist (0 new generated).`);
+      alert(`Invoices for ${month} already exist — nothing new to generate.`);
     }
   } catch(e) { alert('Request failed: ' + e.message); }
   this.disabled = false; this.textContent = 'Generate invoices';
