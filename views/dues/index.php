@@ -139,6 +139,7 @@ document.addEventListener('change', e => {
 });
 
 // Generate invoices
+const DUES_CSRF = <?= json_encode($csrf ?? '') ?>;
 document.getElementById('generateBtn').addEventListener('click', async function () {
   const month = document.getElementById('monthPicker').value;
   this.disabled = true; this.textContent = 'Generating…';
@@ -146,12 +147,17 @@ document.getElementById('generateBtn').addEventListener('click', async function 
     const r = await fetch(BASE + '/api/invoices/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: `_csrf=<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>&month=${month}`
+      body: `_csrf=${encodeURIComponent(DUES_CSRF)}&month=${encodeURIComponent(month)}`
     });
+    if (!r.ok) { alert('Server error ' + r.status + '. Please reload and try again.'); return; }
     const d = await r.json();
-    alert(`Generated ${d.created} invoice(s) for ${month}.`);
-    location.reload();
-  } catch(e) { alert('Failed.'); }
+    if (d.created > 0) {
+      alert(`Generated ${d.created} invoice(s) for ${month}.`);
+      location.reload();
+    } else {
+      alert(`Invoices for ${month} already exist (0 new generated).`);
+    }
+  } catch(e) { alert('Request failed: ' + e.message); }
   this.disabled = false; this.textContent = 'Generate invoices';
 });
 </script>
