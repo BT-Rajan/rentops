@@ -1,5 +1,5 @@
 <div class="auth-card">
-  <h2>Reset password</h2>
+  <h2><?= __('auth.forgot_title') ?></h2>
   <p style="font-size:14px;color:var(--text-secondary);margin-bottom:20px">
     Enter your account email and we'll send a reset link valid for 30 minutes.
   </p>
@@ -20,7 +20,7 @@
     <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
 
     <div class="form-group">
-      <label class="form-label" for="email">Email <span class="req">*</span></label>
+      <label class="form-label" for="email"><?= __('auth.email') ?> <span class="req">*</span></label>
       <input class="form-control" type="email" id="email" name="email"
              value="<?= htmlspecialchars($_POST['email'] ?? '') ?>"
              autocomplete="email" autofocus required>

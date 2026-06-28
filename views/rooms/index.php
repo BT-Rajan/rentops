@@ -22,7 +22,7 @@ function statusBadge(string $s): string {
     </button>
   </div>
   <div class="d-flex align-center gap-8">
-    <span class="text-sm text-muted"><?= count($rooms) ?> rooms total</span>
+    <span class="text-sm text-muted"><?= count($rooms) ?> <?= __('rooms.rooms_total') ?></span>
   </div>
 </div>
 
@@ -36,7 +36,7 @@ $pct      = $total > 0 ? round($occupied / $total * 100) : 0;
 <div class="card mb-24">
   <div class="card-body" style="padding:16px 20px">
     <div class="d-flex align-center justify-between mb-8">
-      <span class="text-sm fw-600">Occupancy — <?= $pct ?>%</span>
+      <span class="text-sm fw-600"><?= __('rooms.occupancy') ?> — <?= $pct ?>%</span>
       <div class="d-flex gap-12 text-sm">
         <span><span class="badge badge-info" style="margin-right:4px"><?= $byStatus['occupied'] ?? 0 ?></span> Occupied</span>
         <span><span class="badge badge-warning" style="margin-right:4px"><?= $byStatus['partially_occupied'] ?? 0 ?></span> Partial</span>
@@ -60,7 +60,7 @@ $pct      = $total > 0 ? round($occupied / $total * 100) : 0;
       <?php if ($r['tenant_name']): ?>
         <div class="room-tenant">👤 <?= htmlspecialchars($r['tenant_name']) ?></div>
       <?php else: ?>
-        <div class="room-tenant text-hint">Vacant</div>
+        <div class="room-tenant text-hint"><?= __('rooms.vacant') ?></div>
       <?php endif; ?>
       <div style="margin-top:10px"><?= statusBadge($r['status']) ?></div>
     </a>
@@ -74,7 +74,7 @@ $pct      = $total > 0 ? round($occupied / $total * 100) : 0;
       <table>
         <thead>
           <tr>
-            <th>Room</th><th>Type</th><th>Tenant</th><th>Rent</th><th>Status</th><th></th>
+            <th><?= __('common.room') ?></th><th><?= __('common.type') ?></th><th><?= __('common.tenant') ?></th><th><?= __('tenants.rent') ?></th><th><?= __('common.status') ?></th><th></th>
           </tr>
         </thead>
         <tbody>
@@ -91,7 +91,7 @@ $pct      = $total > 0 ? round($occupied / $total * 100) : 0;
               </td>
               <td class="fw-600">₹<?= number_format((float)$r['agreed_rent'] ?: (float)$r['base_rent']) ?></td>
               <td><?= statusBadge($r['status']) ?></td>
-              <td><a href="<?= url("/rooms/" . htmlspecialchars($r['id'])) ?>" class="btn btn-ghost btn-sm">View</a></td>
+              <td><a href="<?= url("/rooms/" . htmlspecialchars($r['id'])) ?>" class="btn btn-ghost btn-sm"><?= __('common.view') ?></a></td>
             </tr>
           <?php endforeach; ?>
         </tbody>

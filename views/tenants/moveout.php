@@ -66,7 +66,7 @@
           <button type="submit" class="btn btn-danger" onclick="return confirm('Confirm move-out for <?= htmlspecialchars(addslashes($tenant['full_name'])) ?>?')">
             Confirm move-out
           </button>
-          <a href="<?= url("/tenants/" . htmlspecialchars($tenant['id'])) ?>" class="btn btn-secondary">Cancel</a>
+          <a href="<?= url("/tenants/" . htmlspecialchars($tenant['id'])) ?>" class="btn btn-secondary"><?= __('common.cancel') ?></a>
         </div>
       </form>
 

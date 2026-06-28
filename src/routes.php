@@ -16,6 +16,7 @@ use App\Controllers\TemplateController;
 use App\Middleware\AuthMiddleware;
 use App\Controllers\AuditController;
 use App\Controllers\RentChangeController;
+use App\Controllers\LangController;
 
 $auth = [AuthMiddleware::class];
 
@@ -84,6 +85,10 @@ $router->get('/audit/log',      [AuditController::class, 'log'],   $auth);
 
 // Rent changes (mid-tenancy)
 $router->post('/tenancies/{tenancy_id}/rent-change', [RentChangeController::class, 'store'], $auth);
+
+// Language switch
+$router->get('/lang/switch',  [LangController::class, 'switch']);
+$router->post('/lang/switch', [LangController::class, 'switch']);
 
 // Import
 $router->get('/import',                     [ImportController::class, 'index'],      $auth);

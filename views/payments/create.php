@@ -80,7 +80,7 @@
 
         <div class="d-flex gap-12 mt-8">
           <button type="submit" class="btn btn-primary">Record payment</button>
-          <a href="<?= url("/dues") ?>" class="btn btn-secondary">Cancel</a>
+          <a href="<?= url("/dues") ?>" class="btn btn-secondary"><?= __('common.cancel') ?></a>
         </div>
       </form>
     </div>

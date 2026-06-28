@@ -1,5 +1,5 @@
 <div class="auth-card">
-  <h2>Set new password</h2>
+  <h2><?= __('auth.reset_title') ?></h2>
 
   <?php if (!empty($error)): ?>
     <div class="flash flash-error" style="margin-bottom:20px">

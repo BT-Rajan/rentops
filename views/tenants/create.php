@@ -22,7 +22,7 @@
 
         <div class="form-row">
           <div class="form-group">
-            <label class="form-label" for="email">Email</label>
+            <label class="form-label" for="email"><?= __('common.email') ?></label>
             <input type="email" id="email" name="email" class="form-control"
                    value="<?= htmlspecialchars($_POST['email'] ?? '') ?>">
           </div>
@@ -52,7 +52,7 @@
 
         <div class="d-flex gap-12 mt-8">
           <button type="submit" class="btn btn-primary">Create tenant & assign room →</button>
-          <a href="<?= url("/tenants") ?>" class="btn btn-secondary">Cancel</a>
+          <a href="<?= url("/tenants") ?>" class="btn btn-secondary"><?= __('common.cancel') ?></a>
         </div>
       </form>
     </div>

@@ -1,10 +1,10 @@
 <?php
 $filterMap = [
-    'all'     => ['label' => 'All',     'cls' => 'btn-secondary'],
-    'pending' => ['label' => 'Pending', 'cls' => 'btn-secondary'],
-    'overdue' => ['label' => 'Overdue', 'cls' => 'btn-secondary'],
-    'partial' => ['label' => 'Partial', 'cls' => 'btn-secondary'],
-    'paid'    => ['label' => 'Paid',    'cls' => 'btn-secondary'],
+    'all'     => ['label' => __('common.all'),     'cls' => 'btn-secondary'],
+    'pending' => ['label' => __('dues.pending'), 'cls' => 'btn-secondary'],
+    'overdue' => ['label' => __('dues.overdue'), 'cls' => 'btn-secondary'],
+    'partial' => ['label' => __('dues.partial'), 'cls' => 'btn-secondary'],
+    'paid'    => ['label' => __('dues.paid'),    'cls' => 'btn-secondary'],
 ];
 $filterMap[$filter]['cls'] = 'btn-primary';
 
@@ -15,24 +15,24 @@ $statusCls = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid
 <?php if ($summary): ?>
 <div class="stat-grid mb-24">
   <div class="stat-card accent-amber">
-    <div class="stat-label">Overdue</div>
+    <div class="stat-label"><?= __('dues.overdue') ?></div>
     <div class="stat-value text-danger"><?= $summary['overdue'] ?></div>
-    <div class="stat-sub">invoices</div>
+    <div class="stat-sub"><?= __('dues.invoices') ?></div>
   </div>
   <div class="stat-card">
-    <div class="stat-label">Partial</div>
+    <div class="stat-label"><?= __('dues.partial') ?></div>
     <div class="stat-value"><?= $summary['partial'] ?></div>
-    <div class="stat-sub">invoices</div>
+    <div class="stat-sub"><?= __('dues.invoices') ?></div>
   </div>
   <div class="stat-card accent-green">
-    <div class="stat-label">Paid</div>
+    <div class="stat-label"><?= __('dues.paid') ?></div>
     <div class="stat-value text-success"><?= $summary['paid'] ?></div>
     <div class="stat-sub">of <?= $summary['total'] ?> total</div>
   </div>
   <div class="stat-card accent-blue">
     <div class="stat-label">Outstanding</div>
     <div class="stat-value">₹<?= number_format((float)$summary['total_due'] - (float)$summary['total_paid']) ?></div>
-    <div class="stat-sub">₹<?= number_format((float)$summary['total_paid']) ?> collected</div>
+    <div class="stat-sub">₹<?= number_format((float)$summary['total_paid']) ?> <?= __('dues.collected') ?></div>
   </div>
 </div>
 <?php endif; ?>
@@ -49,7 +49,7 @@ $statusCls = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid
     <input type="month" id="monthPicker" class="form-control" style="width:150px"
            value="<?= htmlspecialchars($month) ?>"
            onchange="location.href=BASE+'/dues?filter=<?= htmlspecialchars($filter) ?>&month='+this.value">
-    <button class="btn btn-secondary btn-sm" id="generateBtn">Generate invoices</button>
+    <button class="btn btn-secondary btn-sm" id="generateBtn">Generate <?= __('dues.invoices') ?></button>
   </div>
 </div>
 
@@ -61,8 +61,8 @@ $statusCls = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid
       <thead>
         <tr>
           <th><input type="checkbox" id="selectAll" title="Select all"></th>
-          <th>Tenant</th><th>Room</th><th class="hide-mobile">Period</th>
-          <th class="text-right hide-mobile">Due</th><th class="text-right">Paid</th><th class="text-right">Balance</th>
+          <th><?= __('common.tenant') ?></th><th><?= __('common.room') ?></th><th class="hide-mobile">Period</th>
+          <th class="text-right hide-mobile">Due</th><th class="text-right"><?= __('dues.paid') ?></th><th class="text-right">Balance</th>
           <th>Status</th><th class="hide-mobile">Overdue by</th><th></th>
         </tr>
       </thead>
@@ -89,7 +89,7 @@ $statusCls = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid
           </td>
           <td>
             <?php if ($d['status'] !== 'paid'): ?>
-              <a href="<?= url("/payments/new?invoice_id=" . htmlspecialchars($d['id'])) ?>" class="btn btn-primary btn-sm">Pay</a>
+              <a href="<?= url("/payments/new?invoice_id=" . htmlspecialchars($d['id'])) ?>" class="btn btn-primary btn-sm"><?= __('dues.pay') ?></a>
             <?php endif; ?>
           </td>
         </tr>
@@ -99,16 +99,16 @@ $statusCls = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid
     <?php else: ?>
     <div class="empty-state">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      <p>No invoices match this filter for <?= htmlspecialchars($month) ?>.</p>
+      <p>No <?= __('dues.invoices') ?> match this filter for <?= htmlspecialchars($month) ?>.</p>
     </div>
     <?php endif; ?>
   </div>
 </div>
 
-<!-- Bulk reminder bar (shows when rows selected) -->
+<!-- Bulk reminder bar (shows when rows <?= __('dues.selected') ?>) -->
 <div id="bulkBar" style="display:none;position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--text-primary);color:#fff;padding:12px 20px;border-radius:var(--radius-lg);box-shadow:var(--shadow);display:none;align-items:center;gap:16px;z-index:200">
-  <span id="bulkCount">0 selected</span>
-  <a id="bulkReminder" href="<?= url("/reminders") ?>" class="btn btn-sm" style="background:#fff;color:var(--text-primary)">Send reminders</a>
+  <span id="bulkCount">0 <?= __('dues.selected') ?></span>
+  <a id="bulkReminder" href="<?= url("/reminders") ?>" class="btn btn-sm" style="background:#fff;color:var(--text-primary)"><?= __('dues.send_reminders') ?></a>
 </div>
 
 <script>
@@ -121,7 +121,7 @@ const bulkCount = document.getElementById('bulkCount');
 function updateBulk() {
   const sel = [...checks()].filter(c => c.checked);
   if (sel.length > 0) {
-    bulkCount.textContent = sel.length + ' selected';
+    bulkCount.textContent = sel.length + ' <?= __('dues.selected') ?>';
     bulkBar.style.display = 'flex';
     document.getElementById('bulkReminder').href =
       BASE + '/reminders?ids=' + sel.map(c => c.value).join(',');
@@ -138,13 +138,13 @@ document.addEventListener('change', e => {
   if (e.target.classList.contains('row-select')) updateBulk();
 });
 
-// Generate invoices
+// Generate <?= __('dues.invoices') ?>
 const DUES_CSRF = <?= json_encode($csrf ?? '') ?>;
 document.getElementById('generateBtn').addEventListener('click', async function () {
   const month = document.getElementById('monthPicker').value;
-  this.disabled = true; this.textContent = 'Generating…';
+  this.disabled = true; this.textContent = __('dues.generating');
   try {
-    const r = await fetch(BASE + '/api/invoices/generate', {
+    const r = await fetch(BASE + '/api/<?= __('dues.invoices') ?>/generate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
       body: `_csrf=${encodeURIComponent(DUES_CSRF)}&month=${encodeURIComponent(month)}`
@@ -161,6 +161,6 @@ document.getElementById('generateBtn').addEventListener('click', async function 
       alert(`Invoices for ${month} already exist — nothing new to generate.`);
     }
   } catch(e) { alert('Request failed: ' + e.message); }
-  this.disabled = false; this.textContent = 'Generate invoices';
+  this.disabled = false; this.textContent = 'Generate <?= __('dues.invoices') ?>';
 });
 </script>

@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="<?= \App\Helpers\Lang::current() === 'ta' ? 'ta' : 'en' ?>">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Sign In — RentOps</title>
+  <title><?= __("auth.sign_in") ?> — <?= __("app_name") ?></title>
   <link rel="stylesheet" href="<?= asset("/assets/css/main.css") ?>">
   <link rel="stylesheet" href="<?= asset("/assets/css/responsive.css") ?>">
   <style>
@@ -19,8 +19,8 @@
 <body>
 <div class="auth-wrap">
   <div class="auth-brand">
-    <h1>RentOps</h1>
-    <p>Rent operations, simplified.</p>
+    <h1><?= __("app_name") ?></h1>
+    
   </div>
   <?= $content ?>
 </div>

@@ -60,7 +60,7 @@ $invMap   = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid'
             <span class="text-sm">₹<?= number_format((float)$activeTenancy['security_deposit']) ?></span>
           </div>
           <div class="d-flex justify-between">
-            <span class="text-sm text-muted">Move-in</span>
+            <span class="text-sm text-muted"><?= __('tenants.move_in') ?></span>
             <span class="text-sm"><?= htmlspecialchars($activeTenancy['move_in_date']) ?></span>
           </div>
           <div class="d-flex justify-between">
@@ -97,12 +97,12 @@ $invMap   = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid'
     <!-- Action buttons -->
     <div style="display:flex;flex-direction:column;gap:8px">
       <?php if ($activeTenancy): ?>
-        <a href="<?= url("/payments/new") ?>" class="btn btn-primary" style="justify-content:center">Record Payment</a>
-        <a href="<?= url("/tenants/" . htmlspecialchars($tenant['id']) . "/moveout") ?>" class="btn btn-secondary" style="justify-content:center">Process Move-out</a>
+        <a href="<?= url("/payments/new") ?>" class="btn btn-primary" style="justify-content:center"><?= __('tenants.record_payment') ?></a>
+        <a href="<?= url("/tenants/" . htmlspecialchars($tenant['id']) . "/moveout") ?>" class="btn btn-secondary" style="justify-content:center"><?= __('tenants.process_moveout') ?></a>
       <?php elseif ($tenant['status'] === 'active'): ?>
-        <a href="<?= url("/tenants/" . htmlspecialchars($tenant['id']) . "/movein") ?>" class="btn btn-primary" style="justify-content:center">Assign Room</a>
+        <a href="<?= url("/tenants/" . htmlspecialchars($tenant['id']) . "/movein") ?>" class="btn btn-primary" style="justify-content:center"><?= __('tenants.assign_room') ?></a>
       <?php endif; ?>
-      <a href="<?= url("/reminders") ?>" class="btn btn-secondary" style="justify-content:center">Send Reminder</a>
+      <a href="<?= url("/reminders") ?>" class="btn btn-secondary" style="justify-content:center"><?= __('tenants.send_reminder') ?></a>
     </div>
 
     <!-- ID proof upload -->

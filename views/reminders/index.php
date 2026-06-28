@@ -22,11 +22,11 @@ $statusBadge = [
 <div class="d-flex gap-0 mb-24" style="border-bottom:1px solid var(--border)">
   <button class="tab-btn active" data-tab="compose" onclick="switchTab('compose',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
-    Compose
+    <?= __('reminders.compose') ?>
   </button>
   <button class="tab-btn" data-tab="history" onclick="switchTab('history',this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
-    History <span class="badge badge-muted" style="margin-left:4px"><?= count($history) ?></span>
+    <?= __('reminders.history') ?> <span class="badge badge-muted" style="margin-left:4px"><?= count($history) ?></span>
   </button>
 </div>
 
@@ -36,7 +36,7 @@ $statusBadge = [
   <!-- Channel selector -->
   <div class="card mb-20">
     <div class="d-flex gap-12 align-center flex-wrap">
-      <span class="text-sm fw-600" style="min-width:70px">Channel</span>
+      <span class="text-sm fw-600" style="min-width:70px"><?= __('reminders.channel') ?></span>
       <?php foreach (['whatsapp' => 'WhatsApp', 'sms' => 'SMS', 'email' => 'Email'] as $ch => $label): ?>
       <label class="channel-pill <?= $ch === 'whatsapp' ? 'active' : '' ?>" id="pill-<?= $ch ?>">
         <input type="radio" name="channel" value="<?= $ch ?>" style="display:none" <?= $ch === 'whatsapp' ? 'checked' : '' ?>>
@@ -54,11 +54,11 @@ $statusBadge = [
       <!-- Recipients -->
       <div class="card mb-16">
         <div class="d-flex justify-between align-center mb-12">
-          <span class="fw-600 text-sm">Recipients</span>
+          <span class="fw-600 text-sm"><?= __('reminders.recipients') ?></span>
           <div class="d-flex gap-8">
-            <button class="btn btn-ghost btn-sm" onclick="setRecipientType('all')">All Active</button>
-            <button class="btn btn-ghost btn-sm" onclick="setRecipientType('overdue')">Overdue Only</button>
-            <button class="btn btn-ghost btn-sm" onclick="clearAll()">Clear</button>
+            <button class="btn btn-ghost btn-sm" onclick="setRecipientType('all')"><?= __('reminders.all_active') ?></button>
+            <button class="btn btn-ghost btn-sm" onclick="setRecipientType('overdue')"><?= __('reminders.overdue_only') ?></button>
+            <button class="btn btn-ghost btn-sm" onclick="clearAll()"><?= __('reminders.clear') ?></button>
           </div>
         </div>
         <input type="text" id="tenantSearch" class="form-control mb-10" placeholder="Search tenant or room…" oninput="filterTenants(this.value)">
@@ -93,8 +93,8 @@ $statusBadge = [
       <!-- Message -->
       <div class="card mb-16">
         <div class="d-flex justify-between align-center mb-8">
-          <span class="fw-600 text-sm">Message</span>
-          <button class="btn btn-ghost btn-sm" onclick="loadTemplate()">Load template</button>
+          <span class="fw-600 text-sm"><?= __('reminders.message') ?></span>
+          <button class="btn btn-ghost btn-sm" onclick="loadTemplate()"><?= __('reminders.load_template') ?></button>
         </div>
         <textarea id="msgBody" class="form-control" rows="8" placeholder="Type your message…" oninput="updateCount()"></textarea>
         <div class="d-flex justify-between mt-6">
@@ -106,8 +106,8 @@ $statusBadge = [
       <!-- Attachment -->
       <div class="card mb-16">
         <div class="d-flex justify-between align-center mb-8">
-          <span class="fw-600 text-sm">Attachment <span class="text-hint">(optional · PDF/JPG/PNG · max 5 MB)</span></span>
-          <button class="btn btn-ghost btn-sm" id="clearFileBtn" onclick="clearFile()" style="display:none">Remove</button>
+          <span class="fw-600 text-sm">Attachment <span class="text-hint">(<?= __('reminders.optional_attachment') ?>)</span></span>
+          <button class="btn btn-ghost btn-sm" id="clearFileBtn" onclick="clearFile()" style="display:none"><?= __('reminders.remove') ?></button>
         </div>
         <input type="file" id="attachFile" accept=".pdf,.jpg,.jpeg,.png" class="form-control" onchange="onFileChange(this)">
         <div id="fileInfo" class="text-sm text-muted mt-6" style="display:none"></div>
@@ -118,9 +118,9 @@ $statusBadge = [
     <!-- Right: Schedule + Send -->
     <div style="width:260px;min-width:220px;flex-shrink:0">
       <div class="card mb-16">
-        <span class="fw-600 text-sm d-block mb-12">Send options</span>
+        <span class="fw-600 text-sm d-block mb-12"><?= __('reminders.send_options') ?></span>
 
-        <label class="text-sm fw-600 d-block mb-4">Schedule (optional)</label>
+        <label class="text-sm fw-600 d-block mb-4"><?= __('reminders.schedule_optional') ?></label>
         <input type="datetime-local" id="scheduleAt" class="form-control mb-16"
                min="<?= date('Y-m-d\TH:i') ?>">
 
@@ -135,7 +135,7 @@ $statusBadge = [
       </div>
 
       <div class="card" id="summaryCard" style="display:none">
-        <span class="fw-600 text-sm d-block mb-8">Summary</span>
+        <span class="fw-600 text-sm d-block mb-8"><?= __('reminders.summary') ?></span>
         <div id="summaryBody" class="text-sm" style="line-height:1.8"></div>
       </div>
     </div>
@@ -151,7 +151,7 @@ $statusBadge = [
       <table>
         <thead>
           <tr>
-            <th>Date</th><th>Channel</th><th>Recipients</th>
+            <th>Date</th><th><?= __('reminders.channel') ?></th><th><?= __('reminders.recipients') ?></th>
             <th>Status</th><th>Sent/Failed</th><th>Scheduled</th><th style="width:120px"></th>
           </tr>
         </thead>
@@ -182,7 +182,7 @@ $statusBadge = [
             <td>
               <div class="d-flex gap-6">
                 <button class="btn btn-ghost btn-sm" onclick="viewLog('<?= htmlspecialchars($h['id']) ?>')">View</button>
-                <button class="btn btn-secondary btn-sm" onclick="openResend('<?= htmlspecialchars($h['id']) ?>', <?= htmlspecialchars(json_encode($h['message'])) ?>, <?= htmlspecialchars(json_encode($h['subject'])) ?>, '<?= htmlspecialchars($h['attachment_path'] ?? '') ?>')">Resend</button>
+                <button class="btn btn-secondary btn-sm" onclick="openResend('<?= htmlspecialchars($h['id']) ?>', <?= htmlspecialchars(json_encode($h['message'])) ?>, <?= htmlspecialchars(json_encode($h['subject'])) ?>, '<?= htmlspecialchars($h['attachment_path'] ?? '') ?>')"><?= __('reminders.resend') ?></button>
               </div>
             </td>
           </tr>
@@ -195,7 +195,7 @@ $statusBadge = [
   <div class="card">
     <div class="empty-state">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:48px;height:48px"><path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 01-3.46 0"/></svg>
-      <p>No reminders sent yet.</p>
+      <p><?= __('reminders.no_reminders') ?></p>
     </div>
   </div>
   <?php endif; ?>
@@ -205,7 +205,7 @@ $statusBadge = [
 <div id="previewModal" class="modal-backdrop" style="display:none">
   <div class="modal" style="max-width:600px">
     <div class="modal-header">
-      <span class="fw-600">Message Preview</span>
+      <span class="fw-600"><?= __('reminders.message_preview') ?></span>
       <button onclick="closeModal('previewModal')" class="btn btn-ghost btn-sm">✕</button>
     </div>
     <div id="previewBody" class="modal-body" style="max-height:60vh;overflow-y:auto"></div>
@@ -216,7 +216,7 @@ $statusBadge = [
 <div id="logModal" class="modal-backdrop" style="display:none">
   <div class="modal" style="max-width:640px">
     <div class="modal-header">
-      <span class="fw-600">Reminder Detail</span>
+      <span class="fw-600"><?= __('reminders.log_detail') ?></span>
       <button onclick="closeModal('logModal')" class="btn btn-ghost btn-sm">✕</button>
     </div>
     <div id="logBody" class="modal-body" style="max-height:70vh;overflow-y:auto"></div>
@@ -227,18 +227,18 @@ $statusBadge = [
 <div id="resendModal" class="modal-backdrop" style="display:none">
   <div class="modal" style="max-width:540px">
     <div class="modal-header">
-      <span class="fw-600">Resend Reminder</span>
+      <span class="fw-600"><?= __('reminders.resend_title') ?></span>
       <button onclick="closeModal('resendModal')" class="btn btn-ghost btn-sm">✕</button>
     </div>
     <div class="modal-body">
       <label class="fw-600 text-sm d-block mb-4">Subject (email only)</label>
       <input type="text" id="resendSubject" class="form-control mb-12">
-      <label class="fw-600 text-sm d-block mb-4">Message</label>
+      <label class="fw-600 text-sm d-block mb-4"><?= __('reminders.message') ?></label>
       <textarea id="resendMsg" class="form-control mb-12" rows="7"></textarea>
       <label class="fw-600 text-sm d-block mb-4">Attachment (replaces original if uploaded)</label>
       <input type="file" id="resendFile" class="form-control mb-4" accept=".pdf,.jpg,.jpeg,.png">
       <label style="display:flex;align-items:center;gap:8px;font-size:13px;margin-bottom:16px">
-        <input type="checkbox" id="removeAttachment"> Remove existing attachment
+        <input type="checkbox" id="removeAttachment"> <?= __('reminders.remove_attachment') ?>
       </label>
       <input type="hidden" id="resendLogId">
       <button class="btn btn-primary" style="width:100%" onclick="doResend()">Resend Now</button>
@@ -250,7 +250,7 @@ $statusBadge = [
 <div id="waModal" class="modal-backdrop" style="display:none">
   <div class="modal" style="max-width:520px">
     <div class="modal-header">
-      <span class="fw-600">Open WhatsApp for each recipient</span>
+      <span class="fw-600"><?= __('reminders.wa_links_title') ?></span>
       <button onclick="closeModal('waModal')" class="btn btn-ghost btn-sm">✕</button>
     </div>
     <div id="waBody" class="modal-body" style="max-height:60vh;overflow-y:auto"></div>
@@ -476,10 +476,10 @@ async function doSend() {
 
 function showWaLinks(links) {
   document.getElementById('waBody').innerHTML = `
-    <p class="text-sm text-muted mb-12">Twilio/WABA not configured. Click each link to open WhatsApp Web:</p>
+    <p class="text-sm text-muted mb-12"><?= __('reminders.wa_no_api') ?></p>
     ${links.map(l => `<div class="wa-link-btn"><span class="fw-600 text-sm">${escHtml(l.name)}</span>
       <a href="${l.url}" target="_blank" class="btn btn-primary btn-sm" style="background:#25D366;border-color:#25D366">
-        Open WhatsApp
+        <?= __('reminders.open_wa') ?>
       </a></div>`).join('')}`;
   document.getElementById('waModal').style.display = 'flex';
 }
@@ -525,7 +525,7 @@ async function doResend() {
     }
     if (data.ok) setTimeout(() => location.reload(), 2000);
   } catch(e) { showToast('Error: ' + e.message, 'error'); }
-  btn.disabled = false; btn.textContent = 'Resend Now';
+  btn.disabled = false; btn.textContent = __('reminders.resend_btn');
 }
 
 // ─── Log detail ───────────────────────────────────────────────────────────
@@ -540,7 +540,7 @@ async function viewLog(id) {
     const recs = l.recipients || [];
     document.getElementById('logBody').innerHTML = `
       <div class="d-flex gap-20 flex-wrap mb-16">
-        <div><div class="text-hint text-sm">Channel</div><div class="fw-600">${ucfirst(l.channel)}</div></div>
+        <div><div class="text-hint text-sm"><?= __('reminders.channel') ?></div><div class="fw-600">${ucfirst(l.channel)}</div></div>
         <div><div class="text-hint text-sm">Status</div><div class="fw-600">${ucfirst(l.status)}</div></div>
         <div><div class="text-hint text-sm">Sent</div><div class="fw-600">${l.sent_at ? fmtDate(l.sent_at) : '—'}</div></div>
         <div><div class="text-hint text-sm">Scheduled</div><div class="fw-600">${l.scheduled_at ? fmtDate(l.scheduled_at) : '—'}</div></div>

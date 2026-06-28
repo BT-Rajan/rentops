@@ -43,6 +43,15 @@ if (session_status() === PHP_SESSION_NONE) {
     ]);
 }
 
+// ── i18n ──────────────────────────────────────────────────────────────────────
+require ROOT . '/src/Helpers/Lang.php';
+\App\Helpers\Lang::init();
+
+// Shorthand global
+function __( string $key, array $replace = [] ): string {
+    return \App\Helpers\Lang::t($key, $replace);
+}
+
 // ── Router ────────────────────────────────────────────────────────────────────
 $router = new Router();
 require ROOT . '/src/routes.php';

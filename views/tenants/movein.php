@@ -60,7 +60,7 @@
 
         <div class="d-flex gap-12 mt-8">
           <button type="submit" class="btn btn-primary">Confirm move-in</button>
-          <a href="<?= url("/tenants/" . htmlspecialchars($tenant['id'])) ?>" class="btn btn-secondary">Cancel</a>
+          <a href="<?= url("/tenants/" . htmlspecialchars($tenant['id'])) ?>" class="btn btn-secondary"><?= __('common.cancel') ?></a>
         </div>
       </form>
     </div>

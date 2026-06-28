@@ -1,10 +1,10 @@
 <div class="d-flex align-center justify-between mb-24">
   <div class="d-flex gap-8">
-    <a href="<?= url("/tenants?status=active") ?>"  class="btn btn-sm <?= $status==='active'  ? 'btn-primary' : 'btn-secondary' ?>">Active</a>
-    <a href="<?= url("/tenants?status=vacated") ?>" class="btn btn-sm <?= $status==='vacated' ? 'btn-primary' : 'btn-secondary' ?>">Vacated</a>
+    <a href="<?= url("/tenants?status=active") ?>"  class="btn btn-sm <?= $status==='active'  ? 'btn-primary' : 'btn-secondary' ?>"><?= __('common.active') ?></a>
+    <a href="<?= url("/tenants?status=vacated") ?>" class="btn btn-sm <?= $status==='vacated' ? 'btn-primary' : 'btn-secondary' ?>"><?= __('common.vacated') ?></a>
     <a href="<?= url("/tenants") ?>"                class="btn btn-sm <?= !in_array($status,['active','vacated']) ? 'btn-primary' : 'btn-secondary' ?>">All</a>
   </div>
-  <a href="<?= url("/tenants/new") ?>" class="btn btn-primary btn-sm">+ Add Tenant</a>
+  <a href="<?= url("/tenants/new") ?>" class="btn btn-primary btn-sm"><?= __('tenants.add_tenant') ?></a>
 </div>
 
 <!-- Search -->
@@ -13,7 +13,7 @@
   <div style="position:relative;max-width:340px">
     <svg style="position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--text-hint)" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
     <input type="search" name="q" class="form-control" style="padding-left:34px"
-           placeholder="Search name, phone, room…"
+           placeholder="<?= __('tenants.search_placeholder') ?>"
            value="<?= htmlspecialchars($search) ?>">
   </div>
 </form>
@@ -25,7 +25,7 @@
     <table>
       <thead>
         <tr>
-          <th>Tenant</th><th>Phone</th><th>Room</th><th>Rent</th><th>Outstanding</th><th>Move-in</th><th>Status</th><th></th>
+          <th><?= __('common.tenant') ?></th><th><?= __('common.phone') ?></th><th><?= __('common.room') ?></th><th><?= __('tenants.rent') ?></th><th><?= __('tenants.outstanding') ?></th><th><?= __('tenants.move_in') ?></th><th><?= __('common.status') ?></th><th></th>
         </tr>
       </thead>
       <tbody>
@@ -67,7 +67,7 @@
             </span>
           </td>
           <td>
-            <a href="<?= url("/tenants/" . htmlspecialchars($t['id'])) ?>" class="btn btn-ghost btn-sm">View</a>
+            <a href="<?= url("/tenants/" . htmlspecialchars($t['id'])) ?>" class="btn btn-ghost btn-sm"><?= __('common.view') ?></a>
           </td>
         </tr>
         <?php endforeach; ?>
@@ -77,7 +77,7 @@
     <div class="empty-state">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
       <p>No tenants found<?= $search ? ' for "' . htmlspecialchars($search) . '"' : '' ?>.</p>
-      <a href="<?= url("/tenants/new") ?>" class="btn btn-primary btn-sm" style="margin-top:12px">+ Add first tenant</a>
+      <a href="<?= url("/tenants/new") ?>" class="btn btn-primary btn-sm" style="margin-top:12px"><?= __('tenants.add_first_tenant') ?></a>
     </div>
     <?php endif; ?>
   </div>
