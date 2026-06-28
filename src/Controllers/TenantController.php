@@ -191,6 +191,11 @@ class TenantController extends BaseController
         $room = DB::row('SELECT * FROM rooms WHERE id = ?', [$_POST['room_id']]);
         if (!$room) { $this->redirect("/tenants/{$params['id']}/movein", 'Invalid room.', 'error'); return; }
 
+        if ($room['status'] === 'occupied') {
+            $this->redirect("/tenants/{$params['id']}/movein", 'Room ' . $room['room_number'] . ' is already occupied.', 'error');
+            return;
+        }
+
         DB::beginTransaction();
         try {
             $tenancyId = $this->uuid();
