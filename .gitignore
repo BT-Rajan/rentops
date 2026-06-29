@@ -26,3 +26,5 @@ Thumbs.db
 *.swo
 storage/reminder_attachments/*
 !storage/reminder_attachments/.gitkeep
+storage/invoices/*
+!storage/invoices/.gitkeep

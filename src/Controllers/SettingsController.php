@@ -98,4 +98,47 @@ class SettingsController extends BaseController
         AuditLog::record('password_changed', 'user', $userId);
         $this->redirect('/settings', 'Password changed successfully. All saved sessions cleared.');
     }
+    public function updateBilling(array $params = []): void
+    {
+        $this->verifyCsrf();
+        $property = DB::row('SELECT * FROM properties LIMIT 1');
+        if (!$property) { $this->redirect('/settings', 'No property found.', 'error'); return; }
+
+        DB::update('properties', [
+            'eb_unit_price' => (float)($_POST['eb_unit_price'] ?? 0),
+            'rent_gst_rate' => min(100, max(0, (float)($_POST['rent_gst_rate'] ?? 18))),
+        ], 'id = ?', [$property['id']]);
+
+        AuditLog::record('billing_settings_updated', 'property', $property['id']);
+        $this->redirect('/settings', 'Billing settings saved.');
+    }
+
+    public function updateRazorpay(array $params = []): void
+    {
+        $this->verifyCsrf();
+        $property = DB::row('SELECT * FROM properties LIMIT 1');
+        if (!$property) { $this->redirect('/settings', 'No property found.', 'error'); return; }
+
+        $keyId  = trim($_POST['razorpay_key_id']     ?? '');
+        $secret = trim($_POST['razorpay_key_secret'] ?? '');
+
+        $update = ['razorpay_key_id' => $keyId ?: null];
+
+        if ($secret) {
+            // Encrypt secret with AES-256-CBC
+            $encKey = base64_decode($_ENV['ENCRYPT_KEY'] ?? '');
+            if ($encKey) {
+                $iv       = random_bytes(16);
+                $cipher   = openssl_encrypt($secret, 'AES-256-CBC', $encKey, OPENSSL_RAW_DATA, $iv);
+                $update['razorpay_key_secret'] = base64_encode($iv . $cipher);
+            } else {
+                $update['razorpay_key_secret'] = $secret; // plain fallback if no ENCRYPT_KEY
+            }
+        }
+
+        DB::update('properties', $update, 'id = ?', [$property['id']]);
+        AuditLog::record('razorpay_settings_updated', 'property', $property['id']);
+        $this->redirect('/settings', 'Razorpay keys saved.');
+    }
+
 }

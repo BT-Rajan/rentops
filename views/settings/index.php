@@ -125,6 +125,54 @@
     </div>
   </div>
 
+
+  <!-- Billing & EB -->
+  <div class="card mb-16">
+    <div class="card-header"><span class="card-title">Billing Settings</span></div>
+    <div class="card-body">
+      <form action="<?= url('/settings/billing') ?>" method="POST">
+        <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
+        <div class="form-group">
+          <label class="form-label" for="eb_unit_price">Electricity Unit Price (₹ per unit)</label>
+          <input type="number" id="eb_unit_price" name="eb_unit_price" class="form-control"
+                 min="0" step="0.01" value="<?= htmlspecialchars($property['eb_unit_price'] ?? '0') ?>"
+                 placeholder="e.g. 10">
+          <div class="form-hint">Used to auto-calculate EB charges in invoices (units × price).</div>
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="rent_gst_rate">GST on Rent (%)</label>
+          <input type="number" id="rent_gst_rate" name="rent_gst_rate" class="form-control"
+                 min="0" max="100" step="0.01" value="<?= htmlspecialchars($property['rent_gst_rate'] ?? '18') ?>">
+          <div class="form-hint">Applied to rent amount only. Electricity has no GST.</div>
+        </div>
+        <button type="submit" class="btn btn-primary">Save Billing Settings</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Razorpay -->
+  <div class="card mb-16">
+    <div class="card-header"><span class="card-title">Razorpay Integration</span></div>
+    <div class="card-body">
+      <form action="<?= url('/settings/razorpay') ?>" method="POST">
+        <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
+        <div class="form-group">
+          <label class="form-label" for="razorpay_key_id">Razorpay Key ID</label>
+          <input type="text" id="razorpay_key_id" name="razorpay_key_id" class="form-control"
+                 value="<?= htmlspecialchars($property['razorpay_key_id'] ?? '') ?>"
+                 placeholder="rzp_live_...">
+        </div>
+        <div class="form-group">
+          <label class="form-label" for="razorpay_key_secret">Razorpay Key Secret</label>
+          <input type="password" id="razorpay_key_secret" name="razorpay_key_secret" class="form-control"
+                 placeholder="<?= !empty($property['razorpay_key_secret']) ? '••••••••••• (saved)' : 'Enter secret key' ?>">
+          <div class="form-hint">Stored encrypted. Leave blank to keep existing secret.</div>
+        </div>
+        <button type="submit" class="btn btn-primary">Save Razorpay Keys</button>
+      </form>
+    </div>
+  </div>
+
   <!-- Language -->
   <div class="card">
     <div class="card-header"><span class="card-title"><?= __('settings.language_settings') ?></span></div>

@@ -86,6 +86,18 @@ $router->get('/audit/log',      [AuditController::class, 'log'],   $auth);
 // Rent changes (mid-tenancy)
 $router->post('/tenancies/{tenancy_id}/rent-change', [RentChangeController::class, 'store'], $auth);
 
+// Invoices
+use App\Controllers\InvoiceController;
+$router->get('/invoices/new',                      [InvoiceController::class, 'create'],        $auth);
+$router->post('/invoices',                         [InvoiceController::class, 'store'],         $auth);
+$router->get('/invoices/{id}',                     [InvoiceController::class, 'show'],          $auth);
+$router->get('/invoices/{id}/pdf',                 [InvoiceController::class, 'pdf'],           $auth);
+$router->post('/invoices/{id}/razorpay-link',      [InvoiceController::class, 'razorpayLink'],  $auth);
+
+// Settings — billing + razorpay
+$router->post('/settings/billing',                 [SettingsController::class, 'updateBilling'],   $auth);
+$router->post('/settings/razorpay',                [SettingsController::class, 'updateRazorpay'],  $auth);
+
 // Language switch
 $router->get('/lang/switch',  [LangController::class, 'switch']);
 $router->post('/lang/switch', [LangController::class, 'switch']);
