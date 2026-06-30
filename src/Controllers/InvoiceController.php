@@ -9,6 +9,91 @@ use App\Helpers\UuidHelper;
 
 class InvoiceController extends BaseController
 {
+    // ─── Invoice listing — search by tenant / room / month, XLSX export ────────
+
+    public function index(array $params = []): void
+    {
+        $tenant = trim($_GET['tenant'] ?? '');
+        $room   = trim($_GET['room']   ?? '');
+        $month  = trim($_GET['month']  ?? '');
+        $status = trim($_GET['status'] ?? '');
+        $tenantId = trim($_GET['tenant_id'] ?? '');
+
+        $where  = [];
+        $args   = [];
+
+        if ($tenantId) { $where[] = 't.id = ?';                $args[] = $tenantId; }
+        if ($tenant)   { $where[] = 't.full_name LIKE ?';       $args[] = "%{$tenant}%"; }
+        if ($room)     { $where[] = 'r.room_number LIKE ?';     $args[] = "%{$room}%"; }
+        if ($month)    { $where[] = "ri.period_month LIKE ?";   $args[] = "{$month}%"; }
+        if ($status)   { $where[] = 'ri.status = ?';            $args[] = $status; }
+
+        $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
+
+        $invoices = DB::rows("
+            SELECT ri.*, t.id AS tenant_id, t.full_name, r.room_number, te.agreed_rent
+            FROM rent_invoices ri
+            JOIN tenancies te ON te.id = ri.tenancy_id
+            JOIN tenants t    ON t.id  = te.tenant_id
+            JOIN rooms r      ON r.id  = te.room_id
+            {$whereSql}
+            ORDER BY ri.period_month DESC, r.room_number
+        ", $args);
+
+        if (($_GET['download'] ?? '') === 'xlsx') {
+            $this->exportXlsx($invoices);
+            return;
+        }
+
+        $this->render('invoices/index', [
+            'pageTitle' => 'Invoices',
+            'invoices'  => $invoices,
+            'csrf'      => $this->csrfToken(),
+            'flash'     => $this->flash(),
+            'user'      => $this->currentUser(),
+        ]);
+    }
+
+    private function exportXlsx(array $invoices): void
+    {
+        require_once ROOT . '/src/Helpers/XlsxWriter.php';
+
+        $w = new \App\Helpers\XlsxWriter([
+            'Period', 'Tenant', 'Room', 'Rent', 'EB Units', 'EB Amount',
+            'GST', 'Other Charges', 'Total Due', 'Paid', 'Balance', 'Status', 'Due Date',
+        ]);
+
+        foreach ($invoices as $inv) {
+            $balance = (float)$inv['amount_due'] - (float)$inv['amount_paid'];
+            $w->addRow([
+                date('M Y', strtotime($inv['period_month'])),
+                $inv['full_name'],
+                $inv['room_number'],
+                (float)$inv['agreed_rent'],
+                (float)$inv['eb_units'],
+                (float)$inv['eb_amount'],
+                (float)$inv['rent_gst'],
+                (float)$inv['other_charges'],
+                (float)$inv['amount_due'],
+                (float)$inv['amount_paid'],
+                $balance,
+                ucfirst($inv['status']),
+                date('d-m-Y', strtotime($inv['due_date'])),
+            ]);
+        }
+
+        $tmpPath = sys_get_temp_dir() . '/rentops_invoices_' . bin2hex(random_bytes(4)) . '.xlsx';
+        $w->save($tmpPath);
+
+        $filename = 'invoices_' . date('Ymd_His') . '.xlsx';
+        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        header('Content-Disposition: attachment; filename="' . $filename . '"');
+        header('Content-Length: ' . filesize($tmpPath));
+        readfile($tmpPath);
+        unlink($tmpPath);
+        exit;
+    }
+
     // ─── Bill generator form ─────────────────────────────────────────────────
 
     public function create(array $params = []): void

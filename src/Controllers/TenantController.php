@@ -83,17 +83,38 @@ class TenantController extends BaseController
         }
 
         $invoices = [];
+        $payments = [];
         if ($activeTenancy) {
             $invoices = DB::rows("
                 SELECT ri.*,
-                       COALESCE(SUM(p.amount), 0) AS collected,
-                       GROUP_CONCAT(p.mode ORDER BY p.payment_date SEPARATOR ', ') AS modes
+                       te.agreed_rent,
+                       COALESCE(SUM(p.amount), 0) AS amount_paid
                 FROM rent_invoices ri
+                JOIN tenancies te ON te.id = ri.tenancy_id
                 LEFT JOIN payments p ON p.invoice_id = ri.id
                 WHERE ri.tenancy_id = ?
                 GROUP BY ri.id
                 ORDER BY ri.period_month DESC
             ", [$activeTenancy['id']]);
+
+            $allPays = DB::rows("
+                SELECT p.*, ri.period_month
+                FROM payments p
+                JOIN rent_invoices ri ON ri.id = p.invoice_id
+                WHERE ri.tenancy_id = ?
+                ORDER BY p.payment_date DESC
+            ", [$activeTenancy['id']]);
+
+            $paysByInv = [];
+            foreach ($allPays as $pay) {
+                $paysByInv[$pay['invoice_id']][] = $pay;
+            }
+            foreach ($invoices as &$inv) {
+                $inv['payments'] = $paysByInv[$inv['id']] ?? [];
+            }
+            unset($inv);
+
+            $payments = $allPays;
         }
 
         $this->render('tenants/show', [
@@ -102,6 +123,7 @@ class TenantController extends BaseController
             'tenancies'     => $tenancies,
             'activeTenancy' => $activeTenancy,
             'invoices'      => $invoices,
+            'payments'      => $payments,
             'flash'         => $this->flash(),
             'user'          => $this->currentUser(),
             'csrf'          => $this->csrfToken(),

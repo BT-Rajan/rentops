@@ -88,6 +88,7 @@ $router->post('/tenancies/{tenancy_id}/rent-change', [RentChangeController::clas
 
 // Invoices
 use App\Controllers\InvoiceController;
+$router->get('/invoices',                          [InvoiceController::class, 'index'],         $auth);
 $router->get('/invoices/new',                      [InvoiceController::class, 'create'],        $auth);
 $router->post('/invoices',                         [InvoiceController::class, 'store'],         $auth);
 $router->get('/invoices/{id}',                     [InvoiceController::class, 'show'],          $auth);

@@ -6,7 +6,8 @@
 .env.*.local
 
 # ─── PHP / Composer ───────────────────────────────────────────────────────────
-vendor/
+# vendor/ — dompdf committed directly (no composer on server)
+# vendor/
 composer.lock
 
 # ─── Runtime / temp files ─────────────────────────────────────────────────────
