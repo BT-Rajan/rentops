@@ -1,13 +1,35 @@
 <?php
 $statusMap = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid'=>'muted'];
+
+// FIX B-flow-10: detect duplicate tenant names so the search hint can warn
+// the landlord when a plain name match could be ambiguous.
+$nameCounts = [];
+foreach ($tenantOptions as $opt) {
+    $key = strtolower($opt['full_name']);
+    $nameCounts[$key] = ($nameCounts[$key] ?? 0) + 1;
+}
+$hasDuplicateNames = !empty(array_filter($nameCounts, fn($c) => $c > 1));
 ?>
 
 <!-- Search bar -->
 <div class="card mb-20">
   <div class="card-body">
     <div class="d-flex gap-12 flex-wrap align-center">
-      <input type="text" id="searchTenant" class="form-control" style="flex:2;min-width:180px"
-             placeholder="Search tenant name…" oninput="applyFilters()" value="<?= htmlspecialchars($_GET['tenant'] ?? '') ?>">
+      <div style="flex:2;min-width:200px;position:relative">
+        <input type="text" id="searchTenant" class="form-control" list="tenantDatalist"
+               placeholder="Search tenant name…" autocomplete="off"
+               oninput="onTenantInput()" value="<?= htmlspecialchars($_GET['tenant'] ?? $selectedTenantName ?? '') ?>">
+        <datalist id="tenantDatalist">
+          <?php foreach ($tenantOptions as $opt): ?>
+          <option value="<?= htmlspecialchars($opt['full_name']) ?> — Room <?= htmlspecialchars($opt['room_number']) ?>"
+                  data-tenant-id="<?= htmlspecialchars($opt['id']) ?>"
+                  data-name="<?= htmlspecialchars($opt['full_name']) ?>"></option>
+          <?php endforeach; ?>
+        </datalist>
+        <div id="exactMatchBadge" class="text-xs" style="display:none;color:var(--primary);margin-top:4px;font-weight:600">
+          ✓ Exact tenant selected
+        </div>
+      </div>
       <input type="text" id="searchRoom" class="form-control" style="flex:1;min-width:120px"
              placeholder="Room number…" oninput="applyFilters()" value="<?= htmlspecialchars($_GET['room'] ?? '') ?>">
       <input type="month" id="searchMonth" class="form-control" style="flex:1;min-width:140px"
@@ -25,6 +47,12 @@ $statusMap = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid
         Export XLSX
       </a>
     </div>
+    <?php if ($hasDuplicateNames): ?>
+    <div class="mt-8 text-xs text-muted" style="display:flex;align-items:center;gap:6px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+      Some tenants share the same name — pick a suggestion below (shows room number) for an exact match instead of typing freely.
+    </div>
+    <?php endif; ?>
     <div class="mt-8 text-sm text-muted">
       Showing <span id="visibleCount"><?= count($invoices) ?></span> of <?= count($invoices) ?> invoices
     </div>
@@ -84,6 +112,7 @@ $balance   = $totalDue - $totalPaid;
           $monthVal = substr($inv['period_month'], 0, 7); // Y-m
         ?>
         <tr data-tenant="<?= strtolower(htmlspecialchars($inv['full_name'])) ?>"
+            data-tenant-id="<?= htmlspecialchars($inv['tenant_id']) ?>"
             data-room="<?= strtolower(htmlspecialchars($inv['room_number'])) ?>"
             data-month="<?= htmlspecialchars($monthVal) ?>"
             data-status="<?= htmlspecialchars($inv['status']) ?>">
@@ -129,15 +158,47 @@ $balance   = $totalDue - $totalPaid;
 </div>
 
 <script>
+let selectedTenantId = '<?= htmlspecialchars($_GET['tenant_id'] ?? '') ?>';
+
+// FIX B-flow-10: when the typed value exactly matches a datalist option
+// ("Name — Room X"), lock onto that tenant's ID for an unambiguous filter
+// instead of falling back to a substring match on name alone.
+function onTenantInput() {
+  const input = document.getElementById('searchTenant');
+  const val   = input.value;
+  const opts  = document.querySelectorAll('#tenantDatalist option');
+  let matched = null;
+
+  opts.forEach(opt => {
+    if (opt.value === val) matched = opt;
+  });
+
+  const badge = document.getElementById('exactMatchBadge');
+  if (matched) {
+    selectedTenantId = matched.dataset.tenantId;
+    input.value = matched.dataset.name; // collapse to just the name for display
+    badge.style.display = '';
+  } else {
+    selectedTenantId = '';
+    badge.style.display = 'none';
+  }
+
+  applyFilters();
+}
+
 function applyFilters() {
-  const tenant = document.getElementById('searchTenant').value.toLowerCase().trim();
-  const room   = document.getElementById('searchRoom').value.toLowerCase().trim();
-  const month  = document.getElementById('searchMonth').value;
-  const status = document.getElementById('searchStatus').value;
-  let visible  = 0;
+  const tenant   = document.getElementById('searchTenant').value.toLowerCase().trim();
+  const room     = document.getElementById('searchRoom').value.toLowerCase().trim();
+  const month    = document.getElementById('searchMonth').value;
+  const status   = document.getElementById('searchStatus').value;
+  let visible    = 0;
 
   document.querySelectorAll('#invoiceTable tbody tr').forEach(row => {
-    const show = (!tenant || row.dataset.tenant.includes(tenant))
+    const tenantMatch = selectedTenantId
+      ? row.dataset.tenantId === selectedTenantId
+      : (!tenant || row.dataset.tenant.includes(tenant));
+
+    const show = tenantMatch
               && (!room   || row.dataset.room.includes(room))
               && (!month  || row.dataset.month === month)
               && (!status || row.dataset.status === status);
@@ -149,7 +210,9 @@ function applyFilters() {
 
   // Update XLSX export link to reflect current filters
   const params = new URLSearchParams(window.location.search);
-  if (tenant) params.set('tenant', tenant); else params.delete('tenant');
+  if (selectedTenantId) { params.set('tenant_id', selectedTenantId); params.delete('tenant'); }
+  else if (tenant)      { params.set('tenant', tenant); params.delete('tenant_id'); }
+  else                  { params.delete('tenant'); params.delete('tenant_id'); }
   if (room)   params.set('room', room);     else params.delete('room');
   if (month)  params.set('month', month);   else params.delete('month');
   if (status) params.set('status', status); else params.delete('status');
@@ -162,7 +225,15 @@ function clearFilters() {
   document.getElementById('searchRoom').value   = '';
   document.getElementById('searchMonth').value  = '';
   document.getElementById('searchStatus').value = '';
+  selectedTenantId = '';
+  document.getElementById('exactMatchBadge').style.display = 'none';
   applyFilters();
+}
+
+// If page loaded with ?tenant_id= already set (e.g. from tenant page link),
+// reflect the exact-match badge state immediately.
+if (selectedTenantId) {
+  document.getElementById('exactMatchBadge').style.display = '';
 }
 
 // Apply any URL params on load

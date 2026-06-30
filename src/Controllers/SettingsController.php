@@ -104,13 +104,40 @@ class SettingsController extends BaseController
         $property = DB::row('SELECT * FROM properties LIMIT 1');
         if (!$property) { $this->redirect('/settings', 'No property found.', 'error'); return; }
 
+        $oldEbPrice = (float)($property['eb_unit_price'] ?? 0);
+        $oldGstRate = (float)($property['rent_gst_rate'] ?? 18);
+        $newEbPrice = (float)($_POST['eb_unit_price'] ?? 0);
+        $newGstRate = min(100, max(0, (float)($_POST['rent_gst_rate'] ?? 18)));
+
+        $changed = abs($oldEbPrice - $newEbPrice) > 0.001 || abs($oldGstRate - $newGstRate) > 0.001;
+
         DB::update('properties', [
-            'eb_unit_price' => (float)($_POST['eb_unit_price'] ?? 0),
-            'rent_gst_rate' => min(100, max(0, (float)($_POST['rent_gst_rate'] ?? 18))),
+            'eb_unit_price' => $newEbPrice,
+            'rent_gst_rate' => $newGstRate,
         ], 'id = ?', [$property['id']]);
 
-        AuditLog::record('billing_settings_updated', 'property', $property['id']);
-        $this->redirect('/settings', 'Billing settings saved.');
+        AuditLog::record('billing_settings_updated', 'property', $property['id'], [
+            'old_eb_unit_price' => $oldEbPrice, 'new_eb_unit_price' => $newEbPrice,
+            'old_gst_rate'      => $oldGstRate, 'new_gst_rate'      => $newGstRate,
+        ]);
+
+        // FIX B-flow-11: this change is forward-only — existing invoices keep
+        // whatever EB rate / GST they were generated with. Say so explicitly
+        // instead of letting the landlord assume (reasonably) that correcting
+        // a typo'd rate also fixes invoices already sitting unpaid.
+        $msg = 'Billing settings saved.';
+        if ($changed) {
+            $unpaidCount = (int)DB::scalar("
+                SELECT COUNT(*) FROM rent_invoices WHERE status IN ('unpaid','partial','overdue')
+            ");
+            if ($unpaidCount > 0) {
+                $msg .= " This rate applies to invoices generated from now on — "
+                       . "{$unpaidCount} existing unpaid invoice(s) keep the rate they were originally billed at "
+                       . "and will not be recalculated automatically.";
+            }
+        }
+
+        $this->redirect('/settings', $msg);
     }
 
     public function updateRazorpay(array $params = []): void

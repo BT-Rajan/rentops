@@ -130,6 +130,21 @@
   <div class="card mb-16">
     <div class="card-header"><span class="card-title">Billing Settings</span></div>
     <div class="card-body">
+      <?php
+        $unpaidInvoiceCount = (int)\App\DB::scalar("
+            SELECT COUNT(*) FROM rent_invoices WHERE status IN ('unpaid','partial','overdue')
+        ");
+      ?>
+      <?php if ($unpaidInvoiceCount > 0): ?>
+      <div style="background:color-mix(in srgb, var(--warning, #F59E0B) 10%, transparent);border:1px solid var(--warning, #F59E0B);border-radius:var(--radius);padding:10px 12px;margin-bottom:16px">
+        <div class="text-sm fw-600" style="color:#92400E">Rate changes apply forward-only</div>
+        <div class="text-xs text-muted mt-4">
+          Changing the unit price or GST rate here only affects invoices generated after saving.
+          You currently have <strong><?= $unpaidInvoiceCount ?></strong> unpaid invoice(s) billed at the existing rate —
+          they will not be recalculated automatically.
+        </div>
+      </div>
+      <?php endif; ?>
       <form action="<?= url('/settings/billing') ?>" method="POST">
         <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
         <div class="form-group">
@@ -137,13 +152,13 @@
           <input type="number" id="eb_unit_price" name="eb_unit_price" class="form-control"
                  min="0" step="0.01" value="<?= htmlspecialchars($property['eb_unit_price'] ?? '0') ?>"
                  placeholder="e.g. 10">
-          <div class="form-hint">Used to auto-calculate EB charges in invoices (units × price).</div>
+          <div class="form-hint">Used to auto-calculate EB charges in invoices (units × price). Applies to new invoices only.</div>
         </div>
         <div class="form-group">
           <label class="form-label" for="rent_gst_rate">GST on Rent (%)</label>
           <input type="number" id="rent_gst_rate" name="rent_gst_rate" class="form-control"
                  min="0" max="100" step="0.01" value="<?= htmlspecialchars($property['rent_gst_rate'] ?? '18') ?>">
-          <div class="form-hint">Applied to rent amount only. Electricity has no GST.</div>
+          <div class="form-hint">Applied to rent amount only. Electricity has no GST. Applies to new invoices only.</div>
         </div>
         <button type="submit" class="btn btn-primary">Save Billing Settings</button>
       </form>

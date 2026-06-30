@@ -40,17 +40,41 @@ class InvoiceController extends BaseController
             ORDER BY ri.period_month DESC, r.room_number
         ", $args);
 
+        // FIX B-flow-10: distinct tenant+room pairs for the search datalist,
+        // so two tenants sharing a name (e.g. two "Ravi Kumar"s in different
+        // rooms) are visually disambiguated while typing instead of being
+        // silently interleaved by a plain substring match on full_name.
+        $tenantOptions = DB::rows("
+            SELECT DISTINCT t.id, t.full_name, r.room_number
+            FROM rent_invoices ri
+            JOIN tenancies te ON te.id = ri.tenancy_id
+            JOIN tenants t    ON t.id  = te.tenant_id
+            JOIN rooms r      ON r.id  = te.room_id
+            ORDER BY t.full_name, r.room_number
+        ");
+
         if (($_GET['download'] ?? '') === 'xlsx') {
             $this->exportXlsx($invoices);
             return;
         }
 
+        // Resolve the tenant's name for the search box when arriving via a
+        // direct tenant_id link (e.g. from the tenant page's Export XLSX),
+        // so the box shows a name instead of being blank with an invisible filter.
+        $selectedTenantName = null;
+        if ($tenantId) {
+            $t = DB::row('SELECT full_name FROM tenants WHERE id = ?', [$tenantId]);
+            $selectedTenantName = $t['full_name'] ?? null;
+        }
+
         $this->render('invoices/index', [
-            'pageTitle' => 'Invoices',
-            'invoices'  => $invoices,
-            'csrf'      => $this->csrfToken(),
-            'flash'     => $this->flash(),
-            'user'      => $this->currentUser(),
+            'pageTitle'          => 'Invoices',
+            'invoices'           => $invoices,
+            'tenantOptions'      => $tenantOptions,
+            'selectedTenantName' => $selectedTenantName,
+            'csrf'               => $this->csrfToken(),
+            'flash'              => $this->flash(),
+            'user'               => $this->currentUser(),
         ]);
     }
 
