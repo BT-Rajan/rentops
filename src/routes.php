@@ -88,12 +88,20 @@ $router->post('/tenancies/{tenancy_id}/rent-change', [RentChangeController::clas
 
 // Invoices
 use App\Controllers\InvoiceController;
+use App\Controllers\RazorpayWebhookController;
 $router->get('/invoices',                          [InvoiceController::class, 'index'],         $auth);
 $router->get('/invoices/new',                      [InvoiceController::class, 'create'],        $auth);
 $router->post('/invoices',                         [InvoiceController::class, 'store'],         $auth);
 $router->get('/invoices/{id}',                     [InvoiceController::class, 'show'],          $auth);
 $router->get('/invoices/{id}/pdf',                 [InvoiceController::class, 'pdf'],           $auth);
 $router->post('/invoices/{id}/razorpay-link',      [InvoiceController::class, 'razorpayLink'],  $auth);
+
+// Razorpay reconciliation — NOT behind $auth: these are hit by Razorpay's
+// servers (webhook) and the tenant's browser (callback redirect), neither of
+// which has a RentOps session. The webhook verifies its own HMAC signature
+// instead — see RazorpayWebhookController::handle().
+$router->post('/payments/razorpay/webhook',        [RazorpayWebhookController::class, 'handle']);
+$router->get('/payments/razorpay/callback',        [RazorpayWebhookController::class, 'callback']);
 
 // Settings — billing + razorpay
 $router->post('/settings/billing',                 [SettingsController::class, 'updateBilling'],   $auth);

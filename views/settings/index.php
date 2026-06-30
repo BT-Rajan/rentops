@@ -168,6 +168,17 @@
                  placeholder="<?= !empty($property['razorpay_key_secret']) ? '••••••••••• (saved)' : 'Enter secret key' ?>">
           <div class="form-hint">Stored encrypted. Leave blank to keep existing secret.</div>
         </div>
+        <div class="form-group">
+          <label class="form-label" for="razorpay_webhook_secret">Webhook Secret</label>
+          <input type="password" id="razorpay_webhook_secret" name="razorpay_webhook_secret" class="form-control"
+                 placeholder="<?= !empty($property['razorpay_webhook_secret']) ? '••••••••••• (saved)' : 'Enter webhook secret' ?>">
+          <div class="form-hint">
+            Create a webhook in your Razorpay Dashboard → Settings → Webhooks pointing to:<br>
+            <code style="font-size:11px;background:var(--surface-2);padding:2px 6px;border-radius:4px"><?= htmlspecialchars(rtrim($_ENV['APP_URL'] ?? '', '/')) ?>/payments/razorpay/webhook</code><br>
+            Subscribe to the <strong>payment_link.paid</strong> event, then paste its secret here.
+            Without this, payments made via the link will not auto-reconcile — you'll need to record them manually.
+          </div>
+        </div>
         <button type="submit" class="btn btn-primary">Save Razorpay Keys</button>
       </form>
     </div>

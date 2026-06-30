@@ -124,7 +124,15 @@ $period     = date('F Y', strtotime($invoice['period_month']));
         <!-- Razorpay Payment Link -->
         <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
           <p class="text-sm text-muted mb-8">Get Payment Link</p>
-          <?php if ($rzLink): ?>
+          <?php
+            $linkAmount = $invoice['razorpay_link_amount'] ?? null;
+            $linkStatus = $invoice['razorpay_link_status'] ?? null;
+            $isStale    = $rzLink && (
+                $linkStatus === 'expired'
+                || ($linkAmount !== null && abs((float)$linkAmount - $balance) > 0.01)
+            );
+          ?>
+          <?php if ($rzLink && !$isStale): ?>
           <a href="<?= htmlspecialchars($rzLink) ?>" target="_blank"
              class="btn" style="width:100%;justify-content:center;background:#072654;color:#fff;border-color:#072654">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:6px"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
@@ -132,6 +140,18 @@ $period     = date('F Y', strtotime($invoice['period_month']));
           </a>
           <button onclick="copyLink()" class="btn btn-ghost btn-sm" style="width:100%;margin-top:6px;justify-content:center">
             Copy Link
+          </button>
+          <?php elseif ($isStale): ?>
+          <div style="background:color-mix(in srgb, var(--warning, #F59E0B) 12%, transparent);border:1px solid var(--warning, #F59E0B);border-radius:var(--radius);padding:10px 12px;margin-bottom:10px">
+            <div class="text-sm fw-600" style="color:#92400E">Link outdated</div>
+            <div class="text-xs text-muted mt-4">
+              The balance changed since this link was created (₹<?= number_format((float)$linkAmount) ?> → ₹<?= number_format($balance) ?>).
+              The old link has been disabled. Generate a fresh one below.
+            </div>
+          </div>
+          <button class="btn" style="width:100%;justify-content:center;background:#072654;color:#fff;border-color:#072654" onclick="getRazorpayLink()" id="rzBtn">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:6px"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
+            Generate Fresh Link
           </button>
           <?php else: ?>
           <button class="btn" style="width:100%;justify-content:center;background:#072654;color:#fff;border-color:#072654" onclick="getRazorpayLink()" id="rzBtn">
@@ -180,6 +200,7 @@ async function getRazorpayLink() {
       return;
     }
     window.rzPayUrl = data.url;
+    const reuseNote = data.reused ? '<div class="text-hint text-sm mt-4">Reusing existing link (balance unchanged).</div>' : '';
     // Replace button with link
     btn.parentElement.innerHTML = `
       <a href="${data.url}" target="_blank" class="btn" style="width:100%;justify-content:center;background:#072654;color:#fff;border-color:#072654">
@@ -188,7 +209,7 @@ async function getRazorpayLink() {
       <button onclick="navigator.clipboard.writeText('${data.url}').then(()=>alert('Copied!'))" class="btn btn-ghost btn-sm" style="width:100%;margin-top:6px;justify-content:center">
         Copy Link
       </button>
-      <div class="text-hint text-sm mt-6" style="word-break:break-all">${data.url}</div>`;
+      <div class="text-hint text-sm mt-6" style="word-break:break-all">${data.url}</div>${reuseNote}`;
   } catch(e) {
     alert('Network error: ' + e.message);
     btn.disabled = false;

@@ -82,6 +82,16 @@ class PaymentController extends BaseController
 
             (new RentEngine())->updateInvoiceStatus($invoiceId, $overpayment);
 
+            // FIX B-flow-7: a manual payment changes the invoice balance —
+            // any previously issued Razorpay link still points at the OLD
+            // balance and would double-charge the tenant if reused. We don't
+            // call the Razorpay API here (no key context needed for a status
+            // flip), we just flag it stale; razorpayLink() detects the
+            // amount mismatch on next click and cancels+reissues automatically.
+            DB::update('rent_invoices', [
+                'razorpay_link_status' => 'expired',
+            ], 'id = ? AND razorpay_link IS NOT NULL', [$invoiceId]);
+
             AuditLog::record('payment_recorded', 'payment', null, [
                 'invoice_id' => $invoiceId,
                 'amount'     => $amount,

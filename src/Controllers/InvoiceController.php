@@ -315,17 +315,39 @@ class InvoiceController extends BaseController
         if (!$invoice) { $this->json(['ok' => false, 'error' => 'Invoice not found'], 404); return; }
 
         $property = DB::row('SELECT * FROM properties LIMIT 1');
-        $keyId    = $property['razorpay_key_id']     ?? '';
-        $secret   = $property['razorpay_key_secret'] ?? '';
-
-        // Decrypt secret
-        if ($secret && defined('ENCRYPT_KEY')) {
-            $secret = $this->decryptSecret($secret);
-        }
+        $keyId    = $property['razorpay_key_id'] ?? '';
+        $secret   = \App\Helpers\Crypto::decrypt($property['razorpay_key_secret'] ?? null);
 
         if (!$keyId || !$secret) {
             $this->json(['ok' => false, 'error' => 'Razorpay keys not configured in Settings.'], 422);
             return;
+        }
+
+        $balance = (float)$invoice['amount_due'] - (float)$invoice['amount_paid'];
+
+        if ($balance <= 0) {
+            $this->json(['ok' => false, 'error' => 'This invoice is already fully paid — no balance to collect.'], 422);
+            return;
+        }
+
+        // FIX B-flow-7: if a link already exists for this invoice and the
+        // balance hasn't changed since it was created, just hand back the
+        // existing link instead of spamming Razorpay with duplicates.
+        $existingLinkId = $invoice['razorpay_link_id'] ?? null;
+        $existingAmount = $invoice['razorpay_link_amount'] !== null ? (float)$invoice['razorpay_link_amount'] : null;
+        $linkIsStale    = ($existingAmount !== null && abs($existingAmount - $balance) > 0.01)
+                       || $invoice['razorpay_link_status'] === 'expired';
+
+        if ($existingLinkId && $invoice['razorpay_link'] && !$linkIsStale && $invoice['razorpay_link_status'] !== 'cancelled') {
+            $this->json(['ok' => true, 'url' => $invoice['razorpay_link'], 'amount' => $balance, 'reused' => true]);
+            return;
+        }
+
+        // Balance moved since the old link was generated (a manual payment
+        // landed in between) — cancel the stale link so the old amount can
+        // never be charged again, then issue a fresh one for the new balance.
+        if ($existingLinkId && $linkIsStale) {
+            $this->cancelRazorpayLink($keyId, $secret, $existingLinkId);
         }
 
         $tenancy = DB::row("
@@ -335,23 +357,22 @@ class InvoiceController extends BaseController
             WHERE te.id = ?
         ", [$invoice['tenancy_id']]);
 
-        $balance    = (float)$invoice['amount_due'] - (float)$invoice['amount_paid'];
         $amountPaise = (int)round($balance * 100); // Razorpay uses paise
 
         $payload = [
-            'amount'      => $amountPaise,
-            'currency'    => 'INR',
-            'accept_partial' => false,
-            'description' => 'Rent for ' . date('M Y', strtotime($invoice['period_month'])),
-            'customer'    => [
-                'name'  => $tenancy['full_name']  ?? 'Tenant',
-                'email' => $tenancy['email']       ?? '',
+            'amount'          => $amountPaise,
+            'currency'        => 'INR',
+            'accept_partial'  => false,
+            'description'     => 'Rent for ' . date('M Y', strtotime($invoice['period_month'])),
+            'customer'        => [
+                'name'    => $tenancy['full_name'] ?? 'Tenant',
+                'email'   => $tenancy['email']      ?? '',
                 'contact' => preg_replace('/\D/', '', $tenancy['phone'] ?? ''),
             ],
-            'notify'      => ['sms' => true, 'email' => (bool)($tenancy['email'] ?? false)],
+            'notify'          => ['sms' => true, 'email' => (bool)($tenancy['email'] ?? false)],
             'reminder_enable' => true,
-            'notes'       => ['invoice_id' => $params['id']],
-            'callback_url'=> rtrim($_ENV['APP_URL'] ?? '', '/') . '/payments/razorpay/callback',
+            'notes'           => ['invoice_id' => $params['id']],
+            'callback_url'    => rtrim($_ENV['APP_URL'] ?? '', '/') . '/payments/razorpay/callback',
             'callback_method' => 'get',
         ];
 
@@ -374,15 +395,43 @@ class InvoiceController extends BaseController
             return;
         }
 
-        $data = json_decode($resp, true);
-        $link = $data['short_url'] ?? $data['id'] ?? '';
+        $data   = json_decode($resp, true);
+        $link   = $data['short_url'] ?? '';
+        $linkId = $data['id']        ?? '';
 
         if ($link) {
-            DB::update('rent_invoices', ['razorpay_link' => $link], 'id = ?', [$params['id']]);
-            AuditLog::record('razorpay_link_created', 'rent_invoices', $params['id'], ['link' => $link]);
+            DB::update('rent_invoices', [
+                'razorpay_link'        => $link,
+                'razorpay_link_id'     => $linkId,
+                'razorpay_link_amount' => $balance,
+                'razorpay_link_status' => 'created',
+            ], 'id = ?', [$params['id']]);
+            AuditLog::record('razorpay_link_created', 'rent_invoices', $params['id'], ['link' => $link, 'amount' => $balance]);
         }
 
-        $this->json(['ok' => true, 'url' => $link, 'amount' => $balance]);
+        $this->json(['ok' => true, 'url' => $link, 'amount' => $balance, 'reused' => false]);
+    }
+
+    /**
+     * Cancel a Razorpay payment link so its (now-stale) amount can never be
+     * paid again. Best-effort — failures are logged, not surfaced, since the
+     * caller is about to issue a replacement link regardless.
+     */
+    private function cancelRazorpayLink(string $keyId, string $secret, string $linkId): void
+    {
+        try {
+            $ch = curl_init("https://api.razorpay.com/v1/payment_links/{$linkId}/cancel");
+            curl_setopt_array($ch, [
+                CURLOPT_RETURNTRANSFER => true,
+                CURLOPT_POST           => true,
+                CURLOPT_USERPWD        => "{$keyId}:{$secret}",
+                CURLOPT_TIMEOUT        => 10,
+            ]);
+            curl_exec($ch);
+            curl_close($ch);
+        } catch (\Throwable $e) {
+            error_log('[RentOps] Failed to cancel stale Razorpay link ' . $linkId . ': ' . $e->getMessage());
+        }
     }
 
     // ─── PDF generator ────────────────────────────────────────────────────────
@@ -563,13 +612,4 @@ HTML;
         return $path;
     }
 
-    private function decryptSecret(string $encrypted): string
-    {
-        $key = base64_decode($_ENV['ENCRYPT_KEY'] ?? '');
-        if (!$key) return $encrypted;
-        $data   = base64_decode($encrypted);
-        $iv     = substr($data, 0, 16);
-        $cipher = substr($data, 16);
-        return openssl_decrypt($cipher, 'AES-256-CBC', $key, OPENSSL_RAW_DATA, $iv) ?: $encrypted;
-    }
 }

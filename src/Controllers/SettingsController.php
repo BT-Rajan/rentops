@@ -119,21 +119,17 @@ class SettingsController extends BaseController
         $property = DB::row('SELECT * FROM properties LIMIT 1');
         if (!$property) { $this->redirect('/settings', 'No property found.', 'error'); return; }
 
-        $keyId  = trim($_POST['razorpay_key_id']     ?? '');
-        $secret = trim($_POST['razorpay_key_secret'] ?? '');
+        $keyId          = trim($_POST['razorpay_key_id']         ?? '');
+        $secret         = trim($_POST['razorpay_key_secret']     ?? '');
+        $webhookSecret  = trim($_POST['razorpay_webhook_secret'] ?? '');
 
         $update = ['razorpay_key_id' => $keyId ?: null];
 
         if ($secret) {
-            // Encrypt secret with AES-256-CBC
-            $encKey = base64_decode($_ENV['ENCRYPT_KEY'] ?? '');
-            if ($encKey) {
-                $iv       = random_bytes(16);
-                $cipher   = openssl_encrypt($secret, 'AES-256-CBC', $encKey, OPENSSL_RAW_DATA, $iv);
-                $update['razorpay_key_secret'] = base64_encode($iv . $cipher);
-            } else {
-                $update['razorpay_key_secret'] = $secret; // plain fallback if no ENCRYPT_KEY
-            }
+            $update['razorpay_key_secret'] = \App\Helpers\Crypto::encrypt($secret);
+        }
+        if ($webhookSecret) {
+            $update['razorpay_webhook_secret'] = \App\Helpers\Crypto::encrypt($webhookSecret);
         }
 
         DB::update('properties', $update, 'id = ?', [$property['id']]);
