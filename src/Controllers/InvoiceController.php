@@ -128,8 +128,9 @@ class InvoiceController extends BaseController
 
         $tenancyId      = $_POST['tenancy_id']       ?? '';
         $month          = trim($_POST['month']        ?? date('Y-m'));
-        $ebUnits        = (float)($_POST['eb_units']        ?? 0);
-        $otherCharges   = (float)($_POST['other_charges']   ?? 0);
+        // FIX B-flow-12: floor at 0 — negative units/charges must not be possible
+        $ebUnits        = max(0, (float)($_POST['eb_units']        ?? 0));
+        $otherCharges   = max(0, (float)($_POST['other_charges']   ?? 0));
         $otherDesc      = trim($_POST['other_charges_desc'] ?? '');
 
         if (!$tenancyId || !preg_match('/^\d{4}-\d{2}$/', $month)) {
@@ -147,7 +148,7 @@ class InvoiceController extends BaseController
         ", [$tenancyId]);
 
         if (!$tenancy) {
-            $this->redirect('/invoices/new', 'Tenancy not found.', 'error');
+            $this->redirect('/invoices/new', 'Tenancy not found or no longer active.', 'error');
             return;
         }
 
@@ -155,27 +156,38 @@ class InvoiceController extends BaseController
         $ebUnitPrice = (float)($property['eb_unit_price'] ?? 0);
         $gstRate     = (float)($property['rent_gst_rate'] ?? 18);
 
-        $rent      = (float)$tenancy['agreed_rent'];
-        $ebAmount  = round($ebUnits * $ebUnitPrice, 2);
-        $rentGst   = round($rent * ($gstRate / 100), 2);
-        $totalDue  = $rent + $rentGst + $ebAmount + $otherCharges;
+        // FIX B-flow-1: resolve rent through RentEngine::effectiveRent() — the
+        // same source the bulk/cron generator uses — so a manually generated
+        // invoice respects any mid-tenancy rent_changes entry instead of
+        // always falling back to the tenancy's current agreed_rent.
+        $engine  = new RentEngine();
+        $rent    = $engine->effectiveRent($tenancyId, (float)$tenancy['agreed_rent'], $month);
+        $ebAmount = round($ebUnits * $ebUnitPrice, 2);
+        $rentGst  = round($rent * ($gstRate / 100), 2);
+        $totalDue = $rent + $rentGst + $ebAmount + $otherCharges;
 
         $period  = $month . '-01';
-        $dueDay  = (int)$tenancy['rent_due_day'];
-        $daysInM = (int)(new \DateTimeImmutable($period))->format('t');
-        $dueDate = $period;
-        $dueDate = substr($period, 0, 8) . str_pad((string)min($dueDay, $daysInM), 2, '0', STR_PAD_LEFT);
+        $periodObj = new \DateTimeImmutable($period);
+        $dueDate = $engine->dueDate($periodObj, (int)$tenancy['rent_due_day']);
 
-        // Upsert invoice
         $existing = DB::row(
-            'SELECT id FROM rent_invoices WHERE tenancy_id = ? AND period_month = ?',
+            'SELECT * FROM rent_invoices WHERE tenancy_id = ? AND period_month = ?',
             [$tenancyId, $period]
         );
+
+        $isRegenerate = (bool)$existing;
+        $previousPaid = $existing ? (float)$existing['amount_paid'] : 0.0;
+
+        // FIX B-flow-5: recalculate status against whatever has actually been
+        // paid so far, instead of leaving a stale 'unpaid'/'partial' value
+        // when the total changes (e.g. correcting EB units after the fact).
+        $newStatus = $engine->resolveStatus($totalDue, $previousPaid);
 
         if ($existing) {
             $invoiceId = $existing['id'];
             DB::update('rent_invoices', [
                 'amount_due'          => $totalDue,
+                'status'              => $newStatus,
                 'eb_units'            => $ebUnits,
                 'eb_amount'           => $ebAmount,
                 'rent_gst'            => $rentGst,
@@ -193,7 +205,7 @@ class InvoiceController extends BaseController
                 'amount_paid'         => 0,
                 'overpayment'         => 0,
                 'due_date'            => $dueDate,
-                'status'              => 'unpaid',
+                'status'              => $newStatus,
                 'eb_units'            => $ebUnits,
                 'eb_amount'           => $ebAmount,
                 'rent_gst'            => $rentGst,
@@ -203,26 +215,45 @@ class InvoiceController extends BaseController
             ]);
         }
 
-        // Generate PDF
-        $pdfPath = $this->generatePdf($invoiceId, $tenancy, $property, $month, [
-            'rent'         => $rent,
-            'eb_units'     => $ebUnits,
-            'eb_amount'    => $ebAmount,
-            'rent_gst'     => $rentGst,
-            'gst_rate'     => $gstRate,
-            'other_charges'=> $otherCharges,
-            'other_desc'   => $otherDesc,
-            'total'        => $totalDue,
-            'due_date'     => $dueDate,
+        // FIX B-flow-8: don't let a PDF rendering failure leave the user on a
+        // bare 500 with no way back — the invoice row above is already
+        // correct; surface the PDF error but still redirect to the invoice
+        // so they can retry the PDF (or proceed with payment) instead of
+        // losing the page entirely.
+        try {
+            $pdfPath = $this->generatePdf($invoiceId, $tenancy, $property, $month, [
+                'rent'          => $rent,
+                'eb_units'      => $ebUnits,
+                'eb_amount'     => $ebAmount,
+                'rent_gst'      => $rentGst,
+                'gst_rate'      => $gstRate,
+                'other_charges' => $otherCharges,
+                'other_desc'    => $otherDesc,
+                'total'         => $totalDue,
+                'due_date'      => $dueDate,
+            ]);
+            DB::update('rent_invoices', ['pdf_path' => $pdfPath], 'id = ?', [$invoiceId]);
+            $pdfNote = '';
+        } catch (\Throwable $e) {
+            error_log('[RentOps] PDF generation failed for invoice ' . $invoiceId . ': ' . $e->getMessage());
+            $pdfNote = ' (PDF generation failed — invoice saved, you can retry the download from the invoice page.)';
+        }
+
+        // FIX B-flow-6: distinguish create vs regenerate in the audit trail,
+        // and record what changed when an existing invoice is corrected.
+        AuditLog::record($isRegenerate ? 'invoice_regenerated' : 'invoice_generated', 'rent_invoices', $invoiceId, [
+            'month'          => $month,
+            'total'          => $totalDue,
+            'eb_units'       => $ebUnits,
+            'other_charges'  => $otherCharges,
+            'previous_total' => $existing['amount_due'] ?? null,
+            'previous_paid'  => $previousPaid,
         ]);
 
-        DB::update('rent_invoices', ['pdf_path' => $pdfPath], 'id = ?', [$invoiceId]);
-
-        AuditLog::record('invoice_generated', 'rent_invoices', $invoiceId, [
-            'month' => $month, 'total' => $totalDue,
-        ]);
-
-        $this->redirect("/invoices/{$invoiceId}", 'Invoice generated successfully.');
+        $msg = $isRegenerate
+            ? 'Invoice updated successfully.' . $pdfNote
+            : 'Invoice generated successfully.' . $pdfNote;
+        $this->redirect("/invoices/{$invoiceId}", $msg);
     }
 
     // ─── Invoice detail + actions ─────────────────────────────────────────────

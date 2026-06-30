@@ -24,13 +24,21 @@
       <form action="<?= url("/tenants/" . htmlspecialchars($tenant['id']) . "/moveout") ?>" method="POST" novalidate>
         <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
 
+        <?php if (!empty($tenancy['scheduled_move_out_date'])): ?>
+        <div class="flash flash-info mb-16">
+          A move-out is already scheduled for <?= date('d M Y', strtotime($tenancy['scheduled_move_out_date'])) ?>.
+          Submitting below will update or execute it.
+        </div>
+        <?php endif; ?>
+
         <div class="form-group">
           <label class="form-label" for="move_out_date">Move-out date <span class="req">*</span></label>
           <input type="date" id="move_out_date" name="move_out_date" class="form-control"
-                 value="<?= date('Y-m-d') ?>"
+                 value="<?= htmlspecialchars($tenancy['scheduled_move_out_date'] ?? date('Y-m-d')) ?>"
                  min="<?= htmlspecialchars($tenancy['move_in_date']) ?>"
                  required>
           <div class="form-hint" id="proRataHint"></div>
+          <div class="form-hint" style="margin-top:4px">A future date schedules the move-out without affecting the tenant or room today. A past or today's date executes it immediately.</div>
           <div id="sameMonthWarn" style="display:none;margin-top:6px" class="flash flash-info" style="padding:8px 12px">
             ⚠ Same-month exit — only days occupied will be charged.
           </div>

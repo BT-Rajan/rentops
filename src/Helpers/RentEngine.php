@@ -351,7 +351,7 @@ class RentEngine
      * This is generous enough to absorb genuine rounding artefacts while being tight
      * enough to catch real shortfalls on any invoice size.
      */
-    private function resolveStatus(float $due, float $paid): string
+    public function resolveStatus(float $due, float $paid): string
     {
         if ($paid <= 0) return 'unpaid';
 
@@ -366,7 +366,7 @@ class RentEngine
      * Effective rent for a month — checks rent_changes table first.
      * Falls back to tenancy agreed_rent.
      */
-    private function effectiveRent(string $tenancyId, float $defaultRent, string $yearMonth): float
+    public function effectiveRent(string $tenancyId, float $defaultRent, string $yearMonth): float
     {
         $change = DB::row(
             "SELECT new_rent FROM rent_changes
@@ -379,7 +379,7 @@ class RentEngine
         return $change ? (float)$change['new_rent'] : $defaultRent;
     }
 
-    private function dueDate(\DateTimeImmutable $period, int $dueDay): string
+    public function dueDate(\DateTimeImmutable $period, int $dueDay): string
     {
         $day = min($dueDay, (int)$period->format('t'));
         return $period->format('Y-m-') . str_pad((string)$day, 2, '0', STR_PAD_LEFT);

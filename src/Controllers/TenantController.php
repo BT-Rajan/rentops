@@ -84,7 +84,16 @@ class TenantController extends BaseController
 
         $invoices = [];
         $payments = [];
-        if ($activeTenancy) {
+
+        // FIX B-flow-9: scope to ALL of this tenant's tenancies, not just the
+        // currently active one. A vacated tenant (no active tenancy left) was
+        // previously losing all invoice/payment visibility on their own page —
+        // exactly the tenants most likely to need a final reconciliation look.
+        $tenancyIds = array_column($tenancies, 'id');
+
+        if ($tenancyIds) {
+            $placeholders = implode(',', array_fill(0, count($tenancyIds), '?'));
+
             $invoices = DB::rows("
                 SELECT ri.*,
                        te.agreed_rent,
@@ -92,18 +101,18 @@ class TenantController extends BaseController
                 FROM rent_invoices ri
                 JOIN tenancies te ON te.id = ri.tenancy_id
                 LEFT JOIN payments p ON p.invoice_id = ri.id
-                WHERE ri.tenancy_id = ?
+                WHERE ri.tenancy_id IN ({$placeholders})
                 GROUP BY ri.id
                 ORDER BY ri.period_month DESC
-            ", [$activeTenancy['id']]);
+            ", $tenancyIds);
 
             $allPays = DB::rows("
                 SELECT p.*, ri.period_month
                 FROM payments p
                 JOIN rent_invoices ri ON ri.id = p.invoice_id
-                WHERE ri.tenancy_id = ?
+                WHERE ri.tenancy_id IN ({$placeholders})
                 ORDER BY p.payment_date DESC
-            ", [$activeTenancy['id']]);
+            ", $tenancyIds);
 
             $paysByInv = [];
             foreach ($allPays as $pay) {
@@ -278,11 +287,30 @@ class TenantController extends BaseController
         $tenancy = DB::row("SELECT * FROM tenancies WHERE tenant_id = ? AND status = 'active'", [$params['id']]);
         if (!$tenancy) { $this->redirect("/tenants/{$params['id']}", 'No active tenancy.', 'error'); return; }
 
+        $moveOutDate = $_POST['move_out_date'];
+        $isFuture    = $moveOutDate > date('Y-m-d');
+
         DB::beginTransaction();
         try {
             $engine = new RentEngine();
-            $engine->processMoveOut($tenancy['id'], $_POST['move_out_date'], (float)($_POST['deposit_deduction'] ?? 0));
 
+            if ($isFuture) {
+                // Scheduled, not effective yet — record intent only.
+                // Tenancy stays active, room stays occupied, tenant stays active.
+                // A daily cron (or next move-out form load) will execute the
+                // actual processMoveOut() once the date arrives.
+                DB::update('tenancies', [
+                    'scheduled_move_out_date' => $moveOutDate,
+                    'scheduled_deduction'     => (float)($_POST['deposit_deduction'] ?? 0),
+                ], 'id = ?', [$tenancy['id']]);
+
+                DB::commit();
+                $this->redirect("/tenants/{$params['id']}", "Move-out scheduled for {$moveOutDate}. Tenant and room remain active until then.");
+                return;
+            }
+
+            // Move-out date is today or in the past — execute immediately.
+            $engine->processMoveOut($tenancy['id'], $moveOutDate, (float)($_POST['deposit_deduction'] ?? 0));
             DB::update('tenants', ['status' => 'vacated'], 'id = ?', [$params['id']]);
 
             DB::commit();

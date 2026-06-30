@@ -33,6 +33,14 @@ $invMap   = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid'
           <div class="d-flex justify-between"><span class="text-sm text-muted">Agreed rent</span><span class="text-sm fw-600 text-primary-color">₹<?= number_format((float)$activeTenancy['agreed_rent']) ?></span></div>
           <div class="d-flex justify-between"><span class="text-sm text-muted">Deposit</span><span class="text-sm">₹<?= number_format((float)$activeTenancy['security_deposit']) ?></span></div>
           <div class="d-flex justify-between"><span class="text-sm text-muted">Move-in</span><span class="text-sm"><?= htmlspecialchars($activeTenancy['move_in_date']) ?></span></div>
+          <?php if (!empty($activeTenancy['scheduled_move_out_date'])): ?>
+          <div style="background:color-mix(in srgb, var(--warning, #F59E0B) 12%, transparent);border:1px solid var(--warning, #F59E0B);border-radius:var(--radius);padding:10px 12px;margin-top:8px">
+            <div class="text-sm fw-600" style="color:#92400E">
+              Move-out scheduled — <?= date('d M Y', strtotime($activeTenancy['scheduled_move_out_date'])) ?>
+            </div>
+            <div class="text-xs text-muted mt-4">Tenant remains active and billable until this date.</div>
+          </div>
+          <?php endif; ?>
           <div class="d-flex justify-between"><span class="text-sm text-muted">Due day</span><span class="text-sm">Day <?= htmlspecialchars($activeTenancy['rent_due_day']) ?></span></div>
 
           <!-- Outstanding summary -->
