@@ -28,7 +28,7 @@
   <form action="<?= url("/audit/fix") ?>" method="POST">
     <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
     <button type="submit" class="btn btn-primary"
-            onclick="return confirm('Auto-generate <?= $stats['missing_inv'] ?> missing invoice(s)?')">
+           >
       ⚡ Auto-fix missing invoices
     </button>
   </form>

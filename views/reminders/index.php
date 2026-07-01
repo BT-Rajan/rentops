@@ -18,13 +18,26 @@ $statusBadge = [
 </div>
 <?php endif; ?>
 
+<!-- Root container carries every server value the external script needs.
+     SECURITY FIX: previously this page had 21 inline onclick/onchange
+     handlers plus a <script> body with PHP-interpolated values mixed into
+     JS logic — both are blocked by the CSP now (script-src has no
+     'unsafe-inline'). All behaviour moved to /assets/js/reminders.js,
+     wired entirely via addEventListener + these data-* attributes. -->
+<div id="remindersRoot"
+     data-csrf="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>"
+     data-i18n-resend-btn="<?= htmlspecialchars(__('reminders.resend_btn')) ?>"
+     data-i18n-wa-no-api="<?= htmlspecialchars(__('reminders.wa_no_api')) ?>"
+     data-i18n-open-wa="<?= htmlspecialchars(__('reminders.open_wa')) ?>"
+     data-i18n-channel="<?= htmlspecialchars(__('reminders.channel')) ?>">
+
 <!-- Tabs -->
 <div class="d-flex gap-0 mb-24" style="border-bottom:1px solid var(--border)">
-  <button class="tab-btn active" data-tab="compose" onclick="switchTab('compose',this)">
+  <button type="button" class="tab-btn active" data-tab="compose" data-action="switch-tab">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
     <?= __('reminders.compose') ?>
   </button>
-  <button class="tab-btn" data-tab="history" onclick="switchTab('history',this)">
+  <button type="button" class="tab-btn" data-tab="history" data-action="switch-tab">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px"><circle cx="12" cy="12" r="10"/><polyline points="12,6 12,12 16,14"/></svg>
     <?= __('reminders.history') ?> <span class="badge badge-muted" style="margin-left:4px"><?= count($history) ?></span>
   </button>
@@ -56,12 +69,12 @@ $statusBadge = [
         <div class="d-flex justify-between align-center mb-12">
           <span class="fw-600 text-sm"><?= __('reminders.recipients') ?></span>
           <div class="d-flex gap-8">
-            <button class="btn btn-ghost btn-sm" onclick="setRecipientType('all')"><?= __('reminders.all_active') ?></button>
-            <button class="btn btn-ghost btn-sm" onclick="setRecipientType('overdue')"><?= __('reminders.overdue_only') ?></button>
-            <button class="btn btn-ghost btn-sm" onclick="clearAll()"><?= __('reminders.clear') ?></button>
+            <button type="button" class="btn btn-ghost btn-sm" data-action="recipient-type" data-type="all"><?= __('reminders.all_active') ?></button>
+            <button type="button" class="btn btn-ghost btn-sm" data-action="recipient-type" data-type="overdue"><?= __('reminders.overdue_only') ?></button>
+            <button type="button" class="btn btn-ghost btn-sm" data-action="clear-recipients"><?= __('reminders.clear') ?></button>
           </div>
         </div>
-        <input type="text" id="tenantSearch" class="form-control mb-10" placeholder="Search tenant or room…" oninput="filterTenants(this.value)">
+        <input type="text" id="tenantSearch" class="form-control mb-10" placeholder="Search tenant or room…">
         <div id="tenantList" style="max-height:280px;overflow-y:auto;display:flex;flex-direction:column;gap:4px">
           <?php foreach ($tenants as $t): ?>
           <label class="tenant-row" data-name="<?= htmlspecialchars(strtolower($t['full_name'])) ?>"
@@ -94,9 +107,9 @@ $statusBadge = [
       <div class="card mb-16">
         <div class="d-flex justify-between align-center mb-8">
           <span class="fw-600 text-sm"><?= __('reminders.message') ?></span>
-          <button class="btn btn-ghost btn-sm" onclick="loadTemplate()"><?= __('reminders.load_template') ?></button>
+          <button type="button" class="btn btn-ghost btn-sm" data-action="load-template"><?= __('reminders.load_template') ?></button>
         </div>
-        <textarea id="msgBody" class="form-control" rows="8" placeholder="Type your message…" oninput="updateCount()"></textarea>
+        <textarea id="msgBody" class="form-control" rows="8" placeholder="Type your message…"></textarea>
         <div class="d-flex justify-between mt-6">
           <span class="text-hint text-sm" id="charCount">0 chars</span>
           <span class="text-hint text-sm" id="smsSegments"></span>
@@ -107,9 +120,9 @@ $statusBadge = [
       <div class="card mb-16">
         <div class="d-flex justify-between align-center mb-8">
           <span class="fw-600 text-sm">Attachment <span class="text-hint">(<?= __('reminders.optional_attachment') ?>)</span></span>
-          <button class="btn btn-ghost btn-sm" id="clearFileBtn" onclick="clearFile()" style="display:none"><?= __('reminders.remove') ?></button>
+          <button type="button" class="btn btn-ghost btn-sm" id="clearFileBtn" data-action="clear-file" style="display:none"><?= __('reminders.remove') ?></button>
         </div>
-        <input type="file" id="attachFile" accept=".pdf,.jpg,.jpeg,.png" class="form-control" onchange="onFileChange(this)">
+        <input type="file" id="attachFile" accept=".pdf,.jpg,.jpeg,.png" class="form-control">
         <div id="fileInfo" class="text-sm text-muted mt-6" style="display:none"></div>
       </div>
 
@@ -124,12 +137,12 @@ $statusBadge = [
         <input type="datetime-local" id="scheduleAt" class="form-control mb-16"
                min="<?= date('Y-m-d\TH:i') ?>">
 
-        <button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="doSend()">
+        <button type="button" class="btn btn-primary" id="sendBtn" style="width:100%;margin-bottom:8px" data-action="send">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px;vertical-align:-3px;margin-right:6px"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
           <span id="sendBtnLabel">Send Now</span>
         </button>
 
-        <button class="btn btn-secondary" style="width:100%" onclick="doPreview()">
+        <button type="button" class="btn btn-secondary" style="width:100%" data-action="preview">
           Preview message
         </button>
       </div>
@@ -181,8 +194,12 @@ $statusBadge = [
             </td>
             <td>
               <div class="d-flex gap-6">
-                <button class="btn btn-ghost btn-sm" onclick="viewLog('<?= htmlspecialchars($h['id']) ?>')">View</button>
-                <button class="btn btn-secondary btn-sm" onclick="openResend('<?= htmlspecialchars($h['id']) ?>', <?= htmlspecialchars(json_encode($h['message'])) ?>, <?= htmlspecialchars(json_encode($h['subject'])) ?>, '<?= htmlspecialchars($h['attachment_path'] ?? '') ?>')"><?= __('reminders.resend') ?></button>
+                <button type="button" class="btn btn-ghost btn-sm" data-action="view-log" data-id="<?= htmlspecialchars($h['id']) ?>">View</button>
+                <button type="button" class="btn btn-secondary btn-sm" data-action="open-resend"
+                        data-id="<?= htmlspecialchars($h['id']) ?>"
+                        data-message="<?= htmlspecialchars($h['message']) ?>"
+                        data-subject="<?= htmlspecialchars($h['subject'] ?? '') ?>"
+                        data-attachment="<?= htmlspecialchars($h['attachment_path'] ?? '') ?>"><?= __('reminders.resend') ?></button>
               </div>
             </td>
           </tr>
@@ -206,7 +223,7 @@ $statusBadge = [
   <div class="modal" style="max-width:600px">
     <div class="modal-header">
       <span class="fw-600"><?= __('reminders.message_preview') ?></span>
-      <button onclick="closeModal('previewModal')" class="btn btn-ghost btn-sm">✕</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="close-modal" data-modal="previewModal">✕</button>
     </div>
     <div id="previewBody" class="modal-body" style="max-height:60vh;overflow-y:auto"></div>
   </div>
@@ -217,7 +234,7 @@ $statusBadge = [
   <div class="modal" style="max-width:640px">
     <div class="modal-header">
       <span class="fw-600"><?= __('reminders.log_detail') ?></span>
-      <button onclick="closeModal('logModal')" class="btn btn-ghost btn-sm">✕</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="close-modal" data-modal="logModal">✕</button>
     </div>
     <div id="logBody" class="modal-body" style="max-height:70vh;overflow-y:auto"></div>
   </div>
@@ -228,7 +245,7 @@ $statusBadge = [
   <div class="modal" style="max-width:540px">
     <div class="modal-header">
       <span class="fw-600"><?= __('reminders.resend_title') ?></span>
-      <button onclick="closeModal('resendModal')" class="btn btn-ghost btn-sm">✕</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="close-modal" data-modal="resendModal">✕</button>
     </div>
     <div class="modal-body">
       <label class="fw-600 text-sm d-block mb-4">Subject (email only)</label>
@@ -241,7 +258,7 @@ $statusBadge = [
         <input type="checkbox" id="removeAttachment"> <?= __('reminders.remove_attachment') ?>
       </label>
       <input type="hidden" id="resendLogId">
-      <button class="btn btn-primary" style="width:100%" onclick="doResend()">Resend Now</button>
+      <button type="button" class="btn btn-primary" id="resendBtn" style="width:100%" data-action="resend">Resend Now</button>
     </div>
   </div>
 </div>
@@ -251,7 +268,7 @@ $statusBadge = [
   <div class="modal" style="max-width:520px">
     <div class="modal-header">
       <span class="fw-600"><?= __('reminders.wa_links_title') ?></span>
-      <button onclick="closeModal('waModal')" class="btn btn-ghost btn-sm">✕</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="close-modal" data-modal="waModal">✕</button>
     </div>
     <div id="waBody" class="modal-body" style="max-height:60vh;overflow-y:auto"></div>
   </div>
@@ -259,6 +276,8 @@ $statusBadge = [
 
 <!-- ─── Result Toast ─────────────────────────────────────────────────────── -->
 <div id="toast" style="display:none;position:fixed;bottom:24px;right:24px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 20px;box-shadow:var(--shadow);z-index:500;max-width:360px;font-size:14px"></div>
+
+</div><!-- /#remindersRoot -->
 
 <style>
 .tab-btn{background:none;border:none;padding:10px 20px;font-size:14px;font-weight:600;cursor:pointer;border-bottom:2px solid transparent;color:var(--text-muted)}
@@ -275,316 +294,4 @@ $statusBadge = [
 .wa-link-btn{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:var(--radius);background:var(--surface-2);margin-bottom:8px;font-size:13px}
 </style>
 
-<script>
-const CSRF = <?= json_encode($_SESSION['csrf_token'] ?? '') ?>;
-const BASE  = window.BASE || '';
-
-// ─── Tabs ─────────────────────────────────────────────────────────────────
-
-function switchTab(name, el) {
-  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-  el.classList.add('active');
-  ['compose','history'].forEach(t => {
-    document.getElementById('tab-' + t).style.display = t === name ? '' : 'none';
-  });
-}
-
-// ─── Channel pills ────────────────────────────────────────────────────────
-
-document.querySelectorAll('.channel-pill').forEach(pill => {
-  pill.addEventListener('click', () => {
-    document.querySelectorAll('.channel-pill').forEach(p => p.classList.remove('active'));
-    pill.classList.add('active');
-    pill.querySelector('input').checked = true;
-    const ch = pill.querySelector('input').value;
-    document.getElementById('subjectRow').style.display = ch === 'email' ? '' : 'none';
-    updateSendBtn();
-    updateCount();
-  });
-});
-
-function currentChannel() {
-  return document.querySelector('input[name="channel"]:checked')?.value ?? 'whatsapp';
-}
-
-// ─── Recipients ───────────────────────────────────────────────────────────
-
-function setRecipientType(type) {
-  const rows = document.querySelectorAll('.tenant-row');
-  if (type === 'all') {
-    rows.forEach(r => { r.querySelector('.tenant-chk').checked = true; r.classList.add('selected'); });
-  } else if (type === 'overdue') {
-    rows.forEach(r => {
-      const bal = parseFloat(r.dataset.balance) || 0;
-      const chk = r.querySelector('.tenant-chk');
-      chk.checked = bal > 0;
-      r.classList.toggle('selected', bal > 0);
-    });
-  }
-  updateSelCount();
-}
-
-function clearAll() {
-  document.querySelectorAll('.tenant-chk').forEach(c => { c.checked = false; c.closest('.tenant-row').classList.remove('selected'); });
-  updateSelCount();
-}
-
-function filterTenants(q) {
-  q = q.toLowerCase();
-  document.querySelectorAll('.tenant-row').forEach(r => {
-    const match = !q || r.dataset.name.includes(q) || r.dataset.room.includes(q);
-    r.style.display = match ? '' : 'none';
-  });
-}
-
-document.addEventListener('change', e => {
-  if (e.target.classList.contains('tenant-chk')) {
-    e.target.closest('.tenant-row').classList.toggle('selected', e.target.checked);
-    updateSelCount();
-  }
-});
-
-function updateSelCount() {
-  const n = document.querySelectorAll('.tenant-chk:checked').length;
-  document.getElementById('selCount').textContent = n;
-  updateSendBtn();
-}
-
-function updateSendBtn() {
-  const n  = document.querySelectorAll('.tenant-chk:checked').length;
-  const sch = document.getElementById('scheduleAt').value;
-  document.getElementById('sendBtnLabel').textContent = sch ? `Schedule for ${n} recipient${n!==1?'s':''}` : `Send to ${n} recipient${n!==1?'s':''}`;
-}
-
-document.getElementById('scheduleAt').addEventListener('change', updateSendBtn);
-
-// ─── Message ──────────────────────────────────────────────────────────────
-
-function updateCount() {
-  const len = document.getElementById('msgBody').value.length;
-  document.getElementById('charCount').textContent = len + ' chars';
-  const ch = currentChannel();
-  if (ch === 'sms') {
-    const segs = Math.ceil(len / 160) || 1;
-    document.getElementById('smsSegments').textContent = segs + ' SMS segment' + (segs > 1 ? 's' : '');
-  } else {
-    document.getElementById('smsSegments').textContent = '';
-  }
-}
-
-function loadTemplate() {
-  const checked = [...document.querySelectorAll('.tenant-chk:checked')];
-  const firstName = checked.length === 1 ? checked[0].dataset.name.split(' ')[0] : '[Name]';
-  const ch = currentChannel();
-  const greeting = ch === 'email' ? `Dear ${firstName},\n\n` : `Dear ${firstName}, `;
-  document.getElementById('msgBody').value =
-    greeting +
-    'This is a friendly reminder that your rent payment is due. Kindly arrange the payment at the earliest to avoid any late fees.\n\n' +
-    'Please contact us if you have any questions.\n\nThank you,\nRentOps';
-  updateCount();
-}
-
-// ─── Attachment ───────────────────────────────────────────────────────────
-
-function onFileChange(inp) {
-  const f = inp.files[0];
-  if (!f) { clearFile(); return; }
-  document.getElementById('fileInfo').style.display = '';
-  document.getElementById('fileInfo').textContent = f.name + ' (' + (f.size/1024).toFixed(1) + ' KB)';
-  document.getElementById('clearFileBtn').style.display = '';
-}
-function clearFile() {
-  document.getElementById('attachFile').value = '';
-  document.getElementById('fileInfo').style.display = 'none';
-  document.getElementById('clearFileBtn').style.display = 'none';
-}
-
-// ─── Preview ──────────────────────────────────────────────────────────────
-
-function doPreview() {
-  const msg  = document.getElementById('msgBody').value.trim();
-  const ch   = currentChannel();
-  const checked = [...document.querySelectorAll('.tenant-chk:checked')];
-  if (!msg)          { showToast('Write a message first.', 'error'); return; }
-  if (!checked.length) { showToast('Select at least one recipient.', 'error'); return; }
-
-  const previews = checked.map(c => {
-    const personal = msg.replace(/\[Name\]/g, c.dataset.name.split(' ')[0]);
-    return `<div style="background:var(--surface-2);border-radius:var(--radius);padding:14px;margin-bottom:12px">
-      <div class="d-flex justify-between align-center mb-8">
-        <div><div class="fw-600 text-sm">${escHtml(c.dataset.name)}</div>
-             <div class="text-hint text-sm">${ch === 'email' ? escHtml(c.dataset.email||'—') : escHtml(c.dataset.phone)}</div></div>
-        ${ch === 'whatsapp' ? `<a href="https://wa.me/91${c.dataset.phone.replace(/\D/g,'')}?text=${encodeURIComponent(personal)}" target="_blank" class="btn btn-primary btn-sm">Open WA</a>` : ''}
-      </div>
-      <pre style="font-family:var(--font);font-size:13px;white-space:pre-wrap;line-height:1.6;color:var(--text-primary)">${escHtml(personal)}</pre>
-    </div>`;
-  });
-  document.getElementById('previewBody').innerHTML = previews.join('');
-  document.getElementById('previewModal').style.display = 'flex';
-}
-
-// ─── Send ─────────────────────────────────────────────────────────────────
-
-async function doSend() {
-  const msg      = document.getElementById('msgBody').value.trim();
-  const ch       = currentChannel();
-  const checked  = [...document.querySelectorAll('.tenant-chk:checked')];
-  const schedAt  = document.getElementById('scheduleAt').value;
-  const subject  = document.getElementById('subjectField').value.trim();
-  const fileInp  = document.getElementById('attachFile');
-
-  if (!msg)          { showToast('Message is required.', 'error'); return; }
-  if (!checked.length) { showToast('Select at least one recipient.', 'error'); return; }
-
-  const fd = new FormData();
-  fd.append('_csrf',          CSRF);
-  fd.append('channel',        ch);
-  fd.append('recipient_type', checked.length === document.querySelectorAll('.tenant-chk').length ? 'all' : 'selected');
-  fd.append('message',        msg);
-  fd.append('subject',        subject);
-  if (schedAt) fd.append('schedule_at', schedAt);
-  checked.forEach(c => fd.append('tenant_ids[]', c.value));
-  if (fileInp.files[0]) fd.append('attachment', fileInp.files[0]);
-
-  const btn = document.querySelector('[onclick="doSend()"]');
-  btn.disabled = true; btn.textContent = 'Sending…';
-
-  try {
-    const res  = await fetch(BASE + '/reminders/send', { method: 'POST', body: fd });
-    const data = await res.json();
-
-    if (!data.ok) { showToast(data.error || 'Failed', 'error'); return; }
-
-    if (data.scheduled) {
-      showToast(`Scheduled for ${schedAt} — ${checked.length} recipient(s).`, 'success');
-    } else if (data.waLinks && data.waLinks.length) {
-      // WhatsApp without API — show link list
-      showWaLinks(data.waLinks);
-    } else {
-      showToast(`Sent to ${data.sent} · Failed: ${data.failed}`, data.failed ? 'warn' : 'success');
-    }
-
-    if (!data.scheduled) setTimeout(() => location.reload(), 2000);
-  } catch(e) {
-    showToast('Network error: ' + e.message, 'error');
-  }
-  btn.disabled = false;
-  updateSendBtn();
-}
-
-// ─── WhatsApp manual links ────────────────────────────────────────────────
-
-function showWaLinks(links) {
-  document.getElementById('waBody').innerHTML = `
-    <p class="text-sm text-muted mb-12"><?= __('reminders.wa_no_api') ?></p>
-    ${links.map(l => `<div class="wa-link-btn"><span class="fw-600 text-sm">${escHtml(l.name)}</span>
-      <a href="${l.url}" target="_blank" class="btn btn-primary btn-sm" style="background:#25D366;border-color:#25D366">
-        <?= __('reminders.open_wa') ?>
-      </a></div>`).join('')}`;
-  document.getElementById('waModal').style.display = 'flex';
-}
-
-// ─── Resend ───────────────────────────────────────────────────────────────
-
-function openResend(id, msg, subject, attachPath) {
-  document.getElementById('resendLogId').value    = id;
-  document.getElementById('resendMsg').value      = msg;
-  document.getElementById('resendSubject').value  = subject || '';
-  document.getElementById('removeAttachment').checked = false;
-  document.getElementById('resendModal').style.display = 'flex';
-}
-
-async function doResend() {
-  const id      = document.getElementById('resendLogId').value;
-  const msg     = document.getElementById('resendMsg').value.trim();
-  const subject = document.getElementById('resendSubject').value.trim();
-  const fileInp = document.getElementById('resendFile');
-  const removeA = document.getElementById('removeAttachment').checked;
-
-  if (!msg) { showToast('Message is required.', 'error'); return; }
-
-  const fd = new FormData();
-  fd.append('_csrf',    CSRF);
-  fd.append('message',  msg);
-  fd.append('subject',  subject);
-  if (removeA) fd.append('remove_attachment', '1');
-  if (fileInp.files[0]) fd.append('attachment', fileInp.files[0]);
-
-  const btn = document.querySelector('[onclick="doResend()"]');
-  btn.disabled = true; btn.textContent = 'Sending…';
-
-  try {
-    const res  = await fetch(BASE + `/reminders/${id}/resend`, { method: 'POST', body: fd });
-    const data = await res.json();
-    closeModal('resendModal');
-    if (data.waLinks && data.waLinks.length) {
-      showWaLinks(data.waLinks);
-    } else {
-      showToast(data.ok ? `Resent — ${data.sent} sent, ${data.failed} failed` : (data.error || 'Failed'),
-                data.ok && !data.failed ? 'success' : 'warn');
-    }
-    if (data.ok) setTimeout(() => location.reload(), 2000);
-  } catch(e) { showToast('Error: ' + e.message, 'error'); }
-  btn.disabled = false; btn.textContent = __('reminders.resend_btn');
-}
-
-// ─── Log detail ───────────────────────────────────────────────────────────
-
-async function viewLog(id) {
-  document.getElementById('logBody').innerHTML = '<div class="text-muted text-sm">Loading…</div>';
-  document.getElementById('logModal').style.display = 'flex';
-  try {
-    const res  = await fetch(BASE + `/reminders/${id}/detail`);
-    const data = await res.json();
-    const l    = data.log;
-    const recs = l.recipients || [];
-    document.getElementById('logBody').innerHTML = `
-      <div class="d-flex gap-20 flex-wrap mb-16">
-        <div><div class="text-hint text-sm"><?= __('reminders.channel') ?></div><div class="fw-600">${ucfirst(l.channel)}</div></div>
-        <div><div class="text-hint text-sm">Status</div><div class="fw-600">${ucfirst(l.status)}</div></div>
-        <div><div class="text-hint text-sm">Sent</div><div class="fw-600">${l.sent_at ? fmtDate(l.sent_at) : '—'}</div></div>
-        <div><div class="text-hint text-sm">Scheduled</div><div class="fw-600">${l.scheduled_at ? fmtDate(l.scheduled_at) : '—'}</div></div>
-        <div><div class="text-hint text-sm">Created by</div><div class="fw-600">${escHtml(l.created_by || '—')}</div></div>
-      </div>
-      ${l.subject ? `<div class="mb-12"><span class="text-hint text-sm">Subject: </span><span class="fw-600">${escHtml(l.subject)}</span></div>` : ''}
-      <div class="mb-12" style="background:var(--surface-2);border-radius:var(--radius);padding:14px">
-        <pre style="font-size:13px;white-space:pre-wrap;line-height:1.6;color:var(--text-primary);margin:0">${escHtml(l.message)}</pre>
-      </div>
-      ${l.attachment_path ? `<div class="mb-12 text-sm">📎 Attachment: ${escHtml(l.attachment_path.split('/').pop())}</div>` : ''}
-      <div class="fw-600 text-sm mb-8">Recipients (${recs.length})</div>
-      <div style="display:flex;flex-direction:column;gap:4px;max-height:200px;overflow-y:auto">
-        ${recs.map(r => `<div style="display:flex;gap:12px;font-size:13px;padding:6px 10px;background:var(--surface-2);border-radius:6px">
-          <span class="fw-600">${escHtml(r.name)}</span>
-          <span class="text-muted">${escHtml(r.phone || '')}</span>
-          <span class="text-muted">${escHtml(r.email || '')}</span>
-        </div>`).join('')}
-      </div>
-      ${l.error_log ? `<div class="mt-12 text-sm text-danger" style="background:color-mix(in srgb,var(--danger,#e55) 10%,transparent);border-radius:var(--radius);padding:10px">${escHtml(l.error_log)}</div>` : ''}
-    `;
-  } catch(e) { document.getElementById('logBody').innerHTML = '<div class="text-danger text-sm">Failed to load.</div>'; }
-}
-
-// ─── Utilities ────────────────────────────────────────────────────────────
-
-function closeModal(id) { document.getElementById(id).style.display = 'none'; }
-function escHtml(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
-function ucfirst(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
-function fmtDate(s) { return new Date(s).toLocaleString('en-IN', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
-
-function showToast(msg, type) {
-  const t = document.getElementById('toast');
-  t.style.display = 'block';
-  t.style.borderLeft = `4px solid ${type==='success'?'var(--success,#22c55e)':type==='warn'?'var(--warning,#f59e0b)':'var(--danger,#ef4444)'}`;
-  t.innerHTML = escHtml(msg);
-  clearTimeout(t._timer);
-  t._timer = setTimeout(() => t.style.display = 'none', 5000);
-}
-
-// Close modals on backdrop click
-document.querySelectorAll('.modal-backdrop').forEach(m => {
-  m.addEventListener('click', e => { if (e.target === m) m.style.display = 'none'; });
-});
-
-// Init
-updateSelCount();
-</script>
+<script src="<?= asset("/assets/js/reminders.js") ?>"></script>

@@ -104,7 +104,7 @@
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="opacity:.6;flex-shrink:0"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 010 20M12 2a15.3 15.3 0 000 20"/></svg>
         <form action="<?= url('/lang/switch') ?>" method="POST" style="flex:1;margin:0">
           <input type="hidden" name="_csrf" value="<?= htmlspecialchars($_SESSION['csrf_token'] ?? '') ?>">
-          <select name="locale" onchange="this.form.submit()"
+          <select name="locale" data-action="auto-submit"
                   style="width:100%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);color:#fff;border-radius:6px;padding:5px 8px;font-size:12px;cursor:pointer">
             <option value="en" <?= $currentLang === 'en' ? 'selected' : '' ?>>English</option>
             <option value="ta" <?= $currentLang === 'ta' ? 'selected' : '' ?>>தமிழ்</option>
@@ -149,7 +149,10 @@
 
 </div>
 
-<script>window.BASE = <?= json_encode(rtrim(\App\Helpers\UrlHelper::base(), '/')) ?>;</script>
+<script nonce="<?= CSP_NONCE ?>">
+window.BASE  = <?= json_encode(rtrim(\App\Helpers\UrlHelper::base(), '/')) ?>;
+window.CSRF  = <?= json_encode($_SESSION['csrf_token'] ?? '') ?>;
+</script>
 <script src="<?= asset("/assets/js/app.js") ?>"></script>
 </body>
 </html>

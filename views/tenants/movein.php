@@ -11,7 +11,7 @@
 
         <div class="form-group">
           <label class="form-label" for="room_id">Assign room <span class="req">*</span></label>
-          <select id="room_id" name="room_id" class="form-control" required onchange="setBaseRent(this)">
+          <select id="room_id" name="room_id" class="form-control" required>
             <option value="">— Select room —</option>
             <?php foreach ($rooms as $r): ?>
               <option value="<?= htmlspecialchars($r['id']) ?>"
@@ -67,7 +67,8 @@
   </div>
 </div>
 
-<script>
+<script src="<?= asset("/assets/js/movein.js") ?>"></script>
+<!-- unused placeholder:
 function setBaseRent(sel) {
   const opt  = sel.options[sel.selectedIndex];
   const rent = opt.dataset.rent || '';
@@ -95,6 +96,4 @@ function updateProRata() {
 }
 
 document.getElementById('agreed_rent').addEventListener('input', updateProRata);
-document.getElementById('move_in_date').addEventListener('change', updateProRata);
-updateProRata();
-</script>
+-->

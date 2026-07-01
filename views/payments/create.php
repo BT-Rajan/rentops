@@ -30,7 +30,7 @@
         <?php else: ?>
           <div class="form-group">
             <label class="form-label" for="invoice_id">Invoice <span class="req">*</span></label>
-            <select id="invoice_id" name="invoice_id" class="form-control" required onchange="setAmount(this)">
+            <select id="invoice_id" name="invoice_id" class="form-control" required>
               <option value="">— Select invoice —</option>
               <?php foreach ($invoices as $inv): ?>
                 <option value="<?= htmlspecialchars($inv['id']) ?>"
@@ -87,7 +87,8 @@
   </div>
 </div>
 
-<script>
+<script src="<?= asset("/assets/js/payment-create.js") ?>"></script>
+<!-- unused:
 function setAmount(sel) {
   const opt = sel.options[sel.selectedIndex];
   const bal = opt.dataset.balance || '';
@@ -96,4 +97,4 @@ function setAmount(sel) {
     document.getElementById('amountHint').textContent = `Balance due: ₹${parseFloat(bal).toLocaleString('en-IN')}`;
   }
 }
-</script>
+-->

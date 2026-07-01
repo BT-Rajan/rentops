@@ -33,15 +33,15 @@
 
         <!-- Drop zone -->
         <div id="dropZone" style="border:2px dashed var(--border-md);border-radius:var(--radius-lg);padding:40px 20px;text-align:center;cursor:pointer;transition:all var(--transition);margin-bottom:16px"
-             onclick="document.getElementById('csvFile').click()"
-             ondragover="event.preventDefault();this.style.borderColor='var(--c-primary)';this.style.background='var(--c-primary-lt)'"
-             ondragleave="this.style.borderColor='var(--border-md)';this.style.background=''"
-             ondrop="handleDrop(event)">
+             id="csvDropZone" data-action="open-csv-picker"
+             id="csvDropZoneInner"
+             
+             >
           <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="var(--text-hint)" stroke-width="1.5" style="margin:0 auto 12px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           <div class="fw-600" style="margin-bottom:4px">Drop CSV here or click to browse</div>
           <div id="fileLabel" class="text-sm text-muted">No file selected — max 2 MB</div>
         </div>
-        <input type="file" id="csvFile" name="csv" accept=".csv,text/csv" style="display:none" onchange="showFile(this)">
+        <input type="file" id="csvFile" name="csv" accept=".csv,text/csv" style="display:none">
 
         <button type="submit" id="uploadBtn" class="btn btn-primary" disabled>
           Preview import →
@@ -75,29 +75,4 @@
   </div>
 </div>
 
-<script>
-function showFile(input) {
-  const file = input.files[0];
-  if (file) {
-    document.getElementById('fileLabel').textContent = file.name + ' — ' + (file.size/1024).toFixed(1) + ' KB';
-    document.getElementById('uploadBtn').disabled = false;
-    document.getElementById('dropZone').style.borderColor = 'var(--c-primary)';
-  }
-}
-
-function handleDrop(e) {
-  e.preventDefault();
-  document.getElementById('dropZone').style.borderColor = 'var(--border-md)';
-  document.getElementById('dropZone').style.background = '';
-  const file = e.dataTransfer.files[0];
-  if (file && file.name.endsWith('.csv')) {
-    const dt   = new DataTransfer();
-    dt.items.add(file);
-    const input = document.getElementById('csvFile');
-    input.files = dt.files;
-    showFile(input);
-  } else {
-    alert('Please drop a .csv file.');
-  }
-}
-</script>
+<script src="<?= asset("/assets/js/import.js") ?>"></script>

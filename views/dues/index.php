@@ -11,6 +11,13 @@ $filterMap[$filter]['cls'] = 'btn-primary';
 $statusCls = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid'=>'muted'];
 ?>
 
+<div id="duesRoot"
+     data-csrf="<?= htmlspecialchars($csrf ?? '') ?>"
+     data-i18n-selected="<?= htmlspecialchars(__('dues.selected')) ?>"
+     data-i18n-generating="<?= htmlspecialchars(__('dues.generating')) ?>"
+     data-i18n-gen-invoices="<?= htmlspecialchars(__('dues.generate_invoices')) ?>"
+     data-i18n-already-exist="<?= htmlspecialchars(__('dues.already_exist')) ?>">
+
 <!-- Summary strip -->
 <?php if ($summary): ?>
 <div class="stat-grid mb-24">
@@ -48,8 +55,8 @@ $statusCls = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid
   <div class="d-flex gap-8 align-center">
     <input type="month" id="monthPicker" class="form-control" style="width:150px"
            value="<?= htmlspecialchars($month) ?>"
-           onchange="location.href=BASE+'/dues?filter=<?= htmlspecialchars($filter) ?>&month='+this.value">
-    <button class="btn btn-secondary btn-sm" id="generateBtn">Generate <?= __('dues.invoices') ?></button>
+           id="duesMonthNav">
+    <button class="btn btn-secondary btn-sm" id="generateBtn" data-action="generate-invoices">Generate <?= __('dues.invoices') ?></button>
   </div>
 </div>
 
@@ -111,56 +118,6 @@ $statusCls = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid
   <a id="bulkReminder" href="<?= url("/reminders") ?>" class="btn btn-sm" style="background:#fff;color:var(--text-primary)"><?= __('dues.send_reminders') ?></a>
 </div>
 
-<script>
-// Select all
-const selectAll = document.getElementById('selectAll');
-const checks    = () => document.querySelectorAll('.row-select');
-const bulkBar   = document.getElementById('bulkBar');
-const bulkCount = document.getElementById('bulkCount');
+</div><!-- /#duesRoot -->
 
-function updateBulk() {
-  const sel = [...checks()].filter(c => c.checked);
-  if (sel.length > 0) {
-    bulkCount.textContent = sel.length + ' <?= __('dues.selected') ?>';
-    bulkBar.style.display = 'flex';
-    document.getElementById('bulkReminder').href =
-      BASE + '/reminders?ids=' + sel.map(c => c.value).join(',');
-  } else {
-    bulkBar.style.display = 'none';
-  }
-}
-
-selectAll?.addEventListener('change', function () {
-  checks().forEach(c => c.checked = this.checked);
-  updateBulk();
-});
-document.addEventListener('change', e => {
-  if (e.target.classList.contains('row-select')) updateBulk();
-});
-
-// Generate <?= __('dues.invoices') ?>
-const DUES_CSRF = <?= json_encode($csrf ?? '') ?>;
-document.getElementById('generateBtn').addEventListener('click', async function () {
-  const month = document.getElementById('monthPicker').value;
-  this.disabled = true; this.textContent = __('dues.generating');
-  try {
-    const r = await fetch(BASE + '/api/<?= __('dues.invoices') ?>/generate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
-      body: `_csrf=${encodeURIComponent(DUES_CSRF)}&month=${encodeURIComponent(month)}`
-    });
-    const d = await r.json().catch(() => null);
-    if (!r.ok || !d?.ok) {
-      alert('Error: ' + (d?.error || 'Server error ' + r.status + '. Check PHP logs.'));
-      return;
-    }
-    if (d.created > 0) {
-      alert(`Generated ${d.created} invoice(s) for ${month}.`);
-      location.reload();
-    } else {
-      alert(`Invoices for ${month} already exist — nothing new to generate.`);
-    }
-  } catch(e) { alert('Request failed: ' + e.message); }
-  this.disabled = false; this.textContent = 'Generate <?= __('dues.invoices') ?>';
-});
-</script>
+<script src="<?= asset("/assets/js/dues.js") ?>"></script>

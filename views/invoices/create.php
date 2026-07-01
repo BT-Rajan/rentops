@@ -3,7 +3,11 @@ $ebPrice = (float)($property['eb_unit_price'] ?? 0);
 $gstRate = (float)($property['rent_gst_rate'] ?? 18);
 ?>
 
-<div class="d-flex gap-20 align-start" style="flex-wrap:wrap">
+<!-- SECURITY FIX: 5 inline onchange/oninput handlers + inline <script> with
+     PHP-interpolated EB_PRICE/GST_RATE moved to /assets/js/invoice-create.js -->
+<div class="d-flex gap-20 align-start" style="flex-wrap:wrap" id="invoiceCreateRoot"
+     data-eb-price="<?= htmlspecialchars((string)$ebPrice) ?>"
+     data-gst-rate="<?= htmlspecialchars((string)$gstRate) ?>">
 
   <!-- Form -->
   <div style="flex:1;min-width:340px">
@@ -16,7 +20,7 @@ $gstRate = (float)($property['rent_gst_rate'] ?? 18);
           <!-- Tenant dropdown -->
           <div class="form-group">
             <label class="form-label" for="tenancy_id">Active Tenant <span class="req">*</span></label>
-            <select id="tenancy_id" name="tenancy_id" class="form-control" required onchange="onTenantChange(this)">
+            <select id="tenancy_id" name="tenancy_id" class="form-control" required>
               <option value="">— Select tenant —</option>
               <?php foreach ($tenants as $t): ?>
               <option value="<?= htmlspecialchars($t['tenancy_id']) ?>"
@@ -33,7 +37,7 @@ $gstRate = (float)($property['rent_gst_rate'] ?? 18);
           <div class="form-group">
             <label class="form-label" for="month">Billing Month <span class="req">*</span></label>
             <input type="month" id="month" name="month" class="form-control"
-                   value="<?= date('Y-m') ?>" max="<?= date('Y-m') ?>" required onchange="recalc()">
+                   value="<?= date('Y-m') ?>" max="<?= date('Y-m') ?>" required>
           </div>
 
           <hr style="margin:20px 0;border:none;border-top:1px solid var(--border)">
@@ -68,7 +72,7 @@ $gstRate = (float)($property['rent_gst_rate'] ?? 18);
               <?php endif; ?>
             </label>
             <input type="number" id="eb_units" name="eb_units" class="form-control"
-                   min="0" step="0.01" value="0" placeholder="e.g. 100" oninput="recalc()">
+                   min="0" step="0.01" value="0" placeholder="e.g. 100">
           </div>
 
           <!-- EB Amount (read-only) -->
@@ -85,9 +89,9 @@ $gstRate = (float)($property['rent_gst_rate'] ?? 18);
             <label class="form-label" for="other_charges">Other Charges</label>
             <div class="d-flex gap-8">
               <input type="text" id="other_charges_desc" name="other_charges_desc" class="form-control"
-                     placeholder="Description (e.g. Water, Maintenance)" style="flex:2" oninput="recalc()">
+                     placeholder="Description (e.g. Water, Maintenance)" style="flex:2">
               <input type="number" id="other_charges" name="other_charges" class="form-control"
-                     min="0" step="0.01" value="0" placeholder="₹0" style="flex:1" oninput="recalc()">
+                     min="0" step="0.01" value="0" placeholder="₹0" style="flex:1">
             </div>
           </div>
 
@@ -123,63 +127,4 @@ $gstRate = (float)($property['rent_gst_rate'] ?? 18);
 
 </div>
 
-<script>
-const EB_PRICE = <?= json_encode($ebPrice) ?>;
-const GST_RATE = <?= json_encode($gstRate) ?>;
-const fmt = v => '₹' + Number(v).toLocaleString('en-IN', {minimumFractionDigits:2, maximumFractionDigits:2});
-
-let currentRent = 0;
-
-function onTenantChange(sel) {
-  const opt = sel.options[sel.selectedIndex];
-  currentRent = parseFloat(opt.dataset.rent || 0);
-  recalc();
-}
-
-function recalc() {
-  const ebUnits      = parseFloat(document.getElementById('eb_units').value) || 0;
-  const otherCharges = parseFloat(document.getElementById('other_charges').value) || 0;
-  const otherDesc    = document.getElementById('other_charges_desc').value.trim() || 'Other charges';
-  const month        = document.getElementById('month').value;
-
-  const rent    = currentRent;
-  const gst     = Math.round(rent * GST_RATE / 100 * 100) / 100;
-  const ebAmt   = Math.round(ebUnits * EB_PRICE * 100) / 100;
-  const total   = rent + gst + ebAmt + otherCharges;
-
-  document.getElementById('rentDisplay').value = fmt(rent);
-  document.getElementById('gstDisplay').value  = fmt(gst);
-  document.getElementById('totalDisplay').textContent = fmt(total);
-
-  if (ebUnits > 0 && EB_PRICE > 0) {
-    document.getElementById('ebAmtRow').style.display = '';
-    document.getElementById('ebAmtDisplay').value = fmt(ebAmt) + ` (${ebUnits} × ${fmt(EB_PRICE)})`;
-  } else {
-    document.getElementById('ebAmtRow').style.display = 'none';
-  }
-
-  const sel = document.getElementById('tenancy_id');
-  const opt = sel.options[sel.selectedIndex];
-  const tenantName = opt.textContent?.trim() || '—';
-  const monthLabel = month ? new Date(month + '-01').toLocaleDateString('en-IN', {month:'long', year:'numeric'}) : '—';
-
-  document.getElementById('previewPanel').innerHTML = !currentRent ? '<p class="text-muted text-sm">Select a tenant to preview.</p>' : `
-    <div style="font-size:12px;line-height:2">
-      <div class="d-flex justify-between"><span class="text-muted">Tenant</span><span class="fw-600">${escHtml(tenantName)}</span></div>
-      <div class="d-flex justify-between"><span class="text-muted">Period</span><span>${escHtml(monthLabel)}</span></div>
-      <hr style="border:none;border-top:1px solid var(--border);margin:8px 0">
-      <div class="d-flex justify-between"><span class="text-muted">Rent</span><span>${fmt(rent)}</span></div>
-      <div class="d-flex justify-between"><span class="text-muted">GST (${GST_RATE}%)</span><span>${fmt(gst)}</span></div>
-      ${ebUnits > 0 ? `<div class="d-flex justify-between"><span class="text-muted">EB (${ebUnits} units)</span><span>${fmt(ebAmt)}</span></div>` : ''}
-      ${otherCharges > 0 ? `<div class="d-flex justify-between"><span class="text-muted">${escHtml(otherDesc)}</span><span>${fmt(otherCharges)}</span></div>` : ''}
-      <hr style="border:none;border-top:2px solid var(--primary);margin:8px 0">
-      <div class="d-flex justify-between align-center">
-        <span class="fw-600" style="font-size:14px">Total</span>
-        <span class="fw-600" style="font-size:18px;color:var(--primary)">${fmt(total)}</span>
-      </div>
-    </div>`;
-}
-
-function escHtml(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-recalc();
-</script>
+<script src="<?= asset("/assets/js/invoice-create.js") ?>"></script>

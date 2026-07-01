@@ -100,22 +100,4 @@ $pct      = $total > 0 ? round($occupied / $total * 100) : 0;
   </div>
 </div>
 
-<script>
-document.querySelectorAll('.view-toggle').forEach(btn => {
-  btn.addEventListener('click', function () {
-    document.querySelectorAll('.view-toggle').forEach(b => {
-      b.classList.remove('active');
-      b.setAttribute('aria-pressed', 'false');
-    });
-    this.classList.add('active');
-    this.setAttribute('aria-pressed', 'true');
-    const v = this.dataset.view;
-    document.getElementById('roomGrid').style.display = v === 'grid' ? 'grid' : 'none';
-    document.getElementById('roomList').style.display = v === 'list' ? 'block' : 'none';
-    localStorage.setItem('roomView', v);
-  });
-});
-// Restore preference
-const saved = localStorage.getItem('roomView');
-if (saved === 'list') document.querySelector('[data-view="list"]').click();
-</script>
+<script src="<?= asset("/assets/js/rooms-index.js") ?>"></script>

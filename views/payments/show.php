@@ -10,7 +10,7 @@
 <div style="max-width:560px;margin:0 auto">
   <div class="d-flex align-center justify-between mb-20 no-print">
     <a href="<?= url("/dues") ?>" class="btn btn-ghost btn-sm" style="padding-left:0">← Back to dues</a>
-    <button onclick="window.print()" class="btn btn-secondary btn-sm">
+    <button class="btn btn-secondary btn-sm" data-action="print-page">
       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
       Print receipt
     </button>

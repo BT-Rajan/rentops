@@ -11,6 +11,12 @@ foreach ($tenantOptions as $opt) {
 $hasDuplicateNames = !empty(array_filter($nameCounts, fn($c) => $c > 1));
 ?>
 
+<!-- SECURITY FIX: this page had 5 inline onclick/oninput/onchange handlers
+     plus a <script> body interpolating $_GET values into JS. Moved to
+     /assets/js/invoices-index.js, wired via addEventListener — the CSP
+     blocks inline script execution outright. -->
+<div id="invoicesRoot" data-initial-tenant-id="<?= htmlspecialchars($_GET['tenant_id'] ?? '') ?>">
+
 <!-- Search bar -->
 <div class="card mb-20">
   <div class="card-body">
@@ -18,7 +24,7 @@ $hasDuplicateNames = !empty(array_filter($nameCounts, fn($c) => $c > 1));
       <div style="flex:2;min-width:200px;position:relative">
         <input type="text" id="searchTenant" class="form-control" list="tenantDatalist"
                placeholder="Search tenant name…" autocomplete="off"
-               oninput="onTenantInput()" value="<?= htmlspecialchars($_GET['tenant'] ?? $selectedTenantName ?? '') ?>">
+               value="<?= htmlspecialchars($_GET['tenant'] ?? $selectedTenantName ?? '') ?>">
         <datalist id="tenantDatalist">
           <?php foreach ($tenantOptions as $opt): ?>
           <option value="<?= htmlspecialchars($opt['full_name']) ?> — Room <?= htmlspecialchars($opt['room_number']) ?>"
@@ -31,17 +37,17 @@ $hasDuplicateNames = !empty(array_filter($nameCounts, fn($c) => $c > 1));
         </div>
       </div>
       <input type="text" id="searchRoom" class="form-control" style="flex:1;min-width:120px"
-             placeholder="Room number…" oninput="applyFilters()" value="<?= htmlspecialchars($_GET['room'] ?? '') ?>">
+             placeholder="Room number…" value="<?= htmlspecialchars($_GET['room'] ?? '') ?>">
       <input type="month" id="searchMonth" class="form-control" style="flex:1;min-width:140px"
-             oninput="applyFilters()" value="<?= htmlspecialchars($_GET['month'] ?? '') ?>">
-      <select id="searchStatus" class="form-control" style="flex:1;min-width:120px" onchange="applyFilters()">
+             value="<?= htmlspecialchars($_GET['month'] ?? '') ?>">
+      <select id="searchStatus" class="form-control" style="flex:1;min-width:120px">
         <option value="">All statuses</option>
         <option value="unpaid"  <?= ($_GET['status']??'')==='unpaid'  ?'selected':'' ?>>Unpaid</option>
         <option value="partial" <?= ($_GET['status']??'')==='partial' ?'selected':'' ?>>Partial</option>
         <option value="overdue" <?= ($_GET['status']??'')==='overdue' ?'selected':'' ?>>Overdue</option>
         <option value="paid"    <?= ($_GET['status']??'')==='paid'    ?'selected':'' ?>>Paid</option>
       </select>
-      <button class="btn btn-ghost btn-sm" onclick="clearFilters()">Clear</button>
+      <button type="button" class="btn btn-ghost btn-sm" data-action="clear-filters">Clear</button>
       <a href="?<?= http_build_query(array_merge($_GET, ['download'=>'xlsx'])) ?>" id="xlsxBtn" class="btn btn-secondary btn-sm">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-2px;margin-right:4px"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
         Export XLSX
@@ -157,85 +163,6 @@ $balance   = $totalDue - $totalPaid;
   <?php endif; ?>
 </div>
 
-<script>
-let selectedTenantId = '<?= htmlspecialchars($_GET['tenant_id'] ?? '') ?>';
+</div><!-- /#invoicesRoot -->
 
-// FIX B-flow-10: when the typed value exactly matches a datalist option
-// ("Name — Room X"), lock onto that tenant's ID for an unambiguous filter
-// instead of falling back to a substring match on name alone.
-function onTenantInput() {
-  const input = document.getElementById('searchTenant');
-  const val   = input.value;
-  const opts  = document.querySelectorAll('#tenantDatalist option');
-  let matched = null;
-
-  opts.forEach(opt => {
-    if (opt.value === val) matched = opt;
-  });
-
-  const badge = document.getElementById('exactMatchBadge');
-  if (matched) {
-    selectedTenantId = matched.dataset.tenantId;
-    input.value = matched.dataset.name; // collapse to just the name for display
-    badge.style.display = '';
-  } else {
-    selectedTenantId = '';
-    badge.style.display = 'none';
-  }
-
-  applyFilters();
-}
-
-function applyFilters() {
-  const tenant   = document.getElementById('searchTenant').value.toLowerCase().trim();
-  const room     = document.getElementById('searchRoom').value.toLowerCase().trim();
-  const month    = document.getElementById('searchMonth').value;
-  const status   = document.getElementById('searchStatus').value;
-  let visible    = 0;
-
-  document.querySelectorAll('#invoiceTable tbody tr').forEach(row => {
-    const tenantMatch = selectedTenantId
-      ? row.dataset.tenantId === selectedTenantId
-      : (!tenant || row.dataset.tenant.includes(tenant));
-
-    const show = tenantMatch
-              && (!room   || row.dataset.room.includes(room))
-              && (!month  || row.dataset.month === month)
-              && (!status || row.dataset.status === status);
-    row.style.display = show ? '' : 'none';
-    if (show) visible++;
-  });
-
-  document.getElementById('visibleCount').textContent = visible;
-
-  // Update XLSX export link to reflect current filters
-  const params = new URLSearchParams(window.location.search);
-  if (selectedTenantId) { params.set('tenant_id', selectedTenantId); params.delete('tenant'); }
-  else if (tenant)      { params.set('tenant', tenant); params.delete('tenant_id'); }
-  else                  { params.delete('tenant'); params.delete('tenant_id'); }
-  if (room)   params.set('room', room);     else params.delete('room');
-  if (month)  params.set('month', month);   else params.delete('month');
-  if (status) params.set('status', status); else params.delete('status');
-  params.set('download', 'xlsx');
-  document.getElementById('xlsxBtn').href = '?' + params.toString();
-}
-
-function clearFilters() {
-  document.getElementById('searchTenant').value = '';
-  document.getElementById('searchRoom').value   = '';
-  document.getElementById('searchMonth').value  = '';
-  document.getElementById('searchStatus').value = '';
-  selectedTenantId = '';
-  document.getElementById('exactMatchBadge').style.display = 'none';
-  applyFilters();
-}
-
-// If page loaded with ?tenant_id= already set (e.g. from tenant page link),
-// reflect the exact-match badge state immediately.
-if (selectedTenantId) {
-  document.getElementById('exactMatchBadge').style.display = '';
-}
-
-// Apply any URL params on load
-applyFilters();
-</script>
+<script src="<?= asset("/assets/js/invoices-index.js") ?>"></script>

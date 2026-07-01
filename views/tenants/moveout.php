@@ -1,6 +1,10 @@
 <div style="max-width:560px">
   <a href="<?= url("/tenants/" . htmlspecialchars($tenant['id'])) ?>" class="btn btn-ghost btn-sm" style="padding-left:0;margin-bottom:20px">← Back to tenant</a>
 
+<div id="moveoutRoot"
+     data-deposit="<?= (float)($tenancy['security_deposit'] ?? 0) ?>"
+     data-rent="<?= (float)($tenancy['agreed_rent'] ?? 0) ?>"
+     data-move-in-date="<?= htmlspecialchars($tenancy['move_in_date'] ?? '') ?>">
   <div class="card">
     <div class="card-header">
       <span class="card-title">Move-out — <?= htmlspecialchars($tenant['full_name']) ?></span>
@@ -48,7 +52,7 @@
           <label class="form-label" for="deposit_deduction">Deposit deduction (₹)</label>
           <input type="number" id="deposit_deduction" name="deposit_deduction" class="form-control"
                  value="0" min="0" max="<?= (float)$tenancy['security_deposit'] ?>" step="100"
-                 oninput="updateRefund()">
+                >
           <div class="form-hint">Damage, unpaid dues, cleaning, etc.</div>
         </div>
 
@@ -71,7 +75,7 @@
         </div>
 
         <div class="d-flex gap-12">
-          <button type="submit" class="btn btn-danger" onclick="return confirm('Confirm move-out for <?= htmlspecialchars(addslashes($tenant['full_name'])) ?>?')">
+          <button type="submit" class="btn btn-danger" data-confirm="Confirm move-out for <?= htmlspecialchars($tenant['full_name']) ?>?">
             Confirm move-out
           </button>
           <a href="<?= url("/tenants/" . htmlspecialchars($tenant['id'])) ?>" class="btn btn-secondary"><?= __('common.cancel') ?></a>
@@ -83,46 +87,5 @@
   </div>
 </div>
 
-<script>
-const deposit  = <?= (float)($tenancy['security_deposit'] ?? 0) ?>;
-const rent     = <?= (float)($tenancy['agreed_rent'] ?? 0) ?>;
-const moveInDate = '<?= htmlspecialchars($tenancy['move_in_date'] ?? '') ?>';
-
-function updateRefund() {
-  const ded = Math.min(parseFloat(document.getElementById('deposit_deduction').value) || 0, deposit);
-  document.getElementById('deductionDisplay').textContent = '₹' + ded.toLocaleString('en-IN');
-  document.getElementById('refundDisplay').textContent    = '₹' + Math.max(0, deposit - ded).toLocaleString('en-IN');
-}
-
-function updateProRata() {
-  const date = document.getElementById('move_out_date').value;
-  const hint = document.getElementById('proRataHint');
-  const warn = document.getElementById('sameMonthWarn');
-  if (!date) { hint.textContent = ''; return; }
-
-  const outDate = new Date(date + 'T00:00:00');
-  const inDate  = new Date(moveInDate + 'T00:00:00');
-  const day     = outDate.getDate();
-  const days    = new Date(outDate.getFullYear(), outDate.getMonth() + 1, 0).getDate();
-
-  const sameMonth = inDate.getFullYear() === outDate.getFullYear() &&
-                    inDate.getMonth()     === outDate.getMonth();
-
-  if (sameMonth) {
-    const occupied = day - inDate.getDate() + 1;
-    const pro = Math.round((rent / days) * Math.max(1, occupied));
-    hint.textContent = `Same-month exit: ₹${pro.toLocaleString('en-IN')} (${occupied} day(s) occupied)`;
-    if (warn) warn.style.display = 'block';
-  } else if (day >= days) {
-    hint.textContent = 'Full month — no pro-rata.';
-    if (warn) warn.style.display = 'none';
-  } else {
-    const pro = Math.round((rent / days) * day);
-    hint.textContent = `Final invoice: ₹${pro.toLocaleString('en-IN')} (${day} of ${days} days)`;
-    if (warn) warn.style.display = 'none';
-  }
-}
-
-document.getElementById('move_out_date').addEventListener('change', updateProRata);
-updateProRata();
-</script>
+</div><!-- /#moveoutRoot -->
+<script src="<?= asset("/assets/js/moveout.js") ?>"></script>

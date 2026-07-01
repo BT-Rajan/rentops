@@ -43,6 +43,28 @@ if (session_status() === PHP_SESSION_NONE) {
     ]);
 }
 
+// ── Content-Security-Policy ──────────────────────────────────────────────────
+// Fixes: inline JS (onclick/onchange/<script> bodies without a nonce) is a
+// systemic XSS risk — any reflected/stored HTML injection becomes executable
+// code. This nonce is generated fresh per-request and is the ONLY way an
+// inline <script> tag will execute; every page-specific script must now live
+// in an external .js file under public/assets/js/, loaded via <script src>,
+// which the CSP allows from 'self' without a nonce. Inline onclick="..."
+// attributes are blocked outright — there is no nonce mechanism for them,
+// which is intentional: it forces the addEventListener pattern everywhere.
+$cspNonce = base64_encode(random_bytes(16));
+define('CSP_NONCE', $cspNonce);
+
+header(sprintf(
+    "Content-Security-Policy: default-src 'self'; script-src 'self' 'nonce-%s'; " .
+    "style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; " .
+    "frame-ancestors 'none'; base-uri 'self'; form-action 'self' https://api.razorpay.com https://*.razorpay.com",
+    $cspNonce
+));
+header('X-Content-Type-Options: nosniff');
+header('X-Frame-Options: DENY');
+header('Referrer-Policy: strict-origin-when-cross-origin');
+
 // ── i18n ──────────────────────────────────────────────────────────────────────
 require ROOT . '/src/Helpers/Lang.php';
 \App\Helpers\Lang::init();

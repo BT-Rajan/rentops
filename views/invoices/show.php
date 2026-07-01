@@ -138,7 +138,7 @@ $period     = date('F Y', strtotime($invoice['period_month']));
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:6px"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
             Open Payment Link
           </a>
-          <button onclick="copyLink()" class="btn btn-ghost btn-sm" style="width:100%;margin-top:6px;justify-content:center">
+          <button type="button" class="btn btn-ghost btn-sm" style="width:100%;margin-top:6px;justify-content:center" data-action="copy-link" data-url="<?= htmlspecialchars($rzLink) ?>">
             Copy Link
           </button>
           <?php elseif ($isStale): ?>
@@ -149,12 +149,12 @@ $period     = date('F Y', strtotime($invoice['period_month']));
               The old link has been disabled. Generate a fresh one below.
             </div>
           </div>
-          <button class="btn" style="width:100%;justify-content:center;background:#072654;color:#fff;border-color:#072654" onclick="getRazorpayLink()" id="rzBtn">
+          <button type="button" class="btn" style="width:100%;justify-content:center;background:#072654;color:#fff;border-color:#072654" id="rzBtn" data-action="get-razorpay-link">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:6px"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
             Generate Fresh Link
           </button>
           <?php else: ?>
-          <button class="btn" style="width:100%;justify-content:center;background:#072654;color:#fff;border-color:#072654" onclick="getRazorpayLink()" id="rzBtn">
+          <button type="button" class="btn" style="width:100%;justify-content:center;background:#072654;color:#fff;border-color:#072654" id="rzBtn" data-action="get-razorpay-link">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:6px"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>
             Get Payment Link
           </button>
@@ -176,51 +176,4 @@ $period     = date('F Y', strtotime($invoice['period_month']));
 <input type="hidden" id="rzExisting" value="<?= htmlspecialchars($rzLink) ?>">
 <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
 
-<script>
-const CSRF = document.querySelector('[name="_csrf"]').value;
-const INV_ID = document.getElementById('invoiceId').value;
-
-async function getRazorpayLink() {
-  const btn = document.getElementById('rzBtn');
-  if (!btn) return;
-  btn.disabled = true;
-  btn.textContent = 'Generating link…';
-
-  try {
-    const res  = await fetch(BASE + '/invoices/' + INV_ID + '/razorpay-link', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'Accept': 'application/json' },
-      body: '_csrf=' + encodeURIComponent(CSRF)
-    });
-    const data = await res.json().catch(() => null);
-    if (!data?.ok) {
-      alert('Error: ' + (data?.error || 'Failed to create payment link'));
-      btn.disabled = false;
-      btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align:-3px;margin-right:6px"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg> Get Payment Link';
-      return;
-    }
-    window.rzPayUrl = data.url;
-    const reuseNote = data.reused ? '<div class="text-hint text-sm mt-4">Reusing existing link (balance unchanged).</div>' : '';
-    // Replace button with link
-    btn.parentElement.innerHTML = `
-      <a href="${data.url}" target="_blank" class="btn" style="width:100%;justify-content:center;background:#072654;color:#fff;border-color:#072654">
-        Open Payment Link
-      </a>
-      <button onclick="navigator.clipboard.writeText('${data.url}').then(()=>alert('Copied!'))" class="btn btn-ghost btn-sm" style="width:100%;margin-top:6px;justify-content:center">
-        Copy Link
-      </button>
-      <div class="text-hint text-sm mt-6" style="word-break:break-all">${data.url}</div>${reuseNote}`;
-  } catch(e) {
-    alert('Network error: ' + e.message);
-    btn.disabled = false;
-    btn.textContent = 'Get Payment Link';
-  }
-}
-
-function copyLink() {
-  const url = '<?= htmlspecialchars($rzLink) ?>';
-  navigator.clipboard.writeText(url).then(() => alert('Payment link copied!')).catch(() => {
-    prompt('Copy this link:', url);
-  });
-}
-</script>
+<script src="<?= asset("/assets/js/invoice-show.js") ?>"></script>

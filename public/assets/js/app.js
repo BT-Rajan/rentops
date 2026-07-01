@@ -121,15 +121,89 @@
     });
   }
 
-  // ─── Number formatting helper (exposed globally for inline scripts) ─────────
+  // ─── Number formatting helper ─────────────────────────────────────────────
   window.fmtINR = v =>
     '₹' + Number(v).toLocaleString('en-IN', { maximumFractionDigits: 0 });
 
-  // ─── Escape HTML helper ─────────────────────────────────────────────────────
+  // ─── Escape HTML helper ───────────────────────────────────────────────────
   window.escHtml = s => {
     const d = document.createElement('div');
     d.textContent = s ?? '';
     return d.innerHTML;
   };
+
+  // ─── Global data-action delegation ───────────────────────────────────────
+  // SECURITY: replaces scattered onclick/onchange/oninput inline handlers
+  // across layouts/app.php, payments/show.php, import/*, tenants/moveout.php,
+  // dues/index.php. Centralised here because these behaviours are either
+  // layout-level (lang switcher) or simple single-use page interactions that
+  // don't warrant their own JS file.
+
+  document.addEventListener('click', e => {
+    const el = e.target.closest('[data-action]');
+    if (!el) return;
+
+    switch (el.dataset.action) {
+
+      // payments/show.php — print receipt
+      case 'print-page':
+        window.print();
+        break;
+
+      // layouts/app.php — language select auto-submits its parent form
+      case 'auto-submit':
+        el.closest('form')?.submit();
+        break;
+
+      // import/index.php — click the hidden file input
+      case 'open-csv-picker':
+        document.getElementById('csvFile')?.click();
+        break;
+    }
+  });
+
+  // data-confirm: submit buttons/links that need a confirmation dialog.
+  // Works on both <button> (form submit) and <a> (navigation).
+  // Replaces onclick="return confirm('...')" across import/preview.php,
+  // tenants/moveout.php, and any future form that needs a confirm guard.
+  document.addEventListener('click', e => {
+    const el = e.target.closest('[data-confirm]');
+    if (!el) return;
+    const msg = el.dataset.confirm;
+    if (msg && !confirm(msg)) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+    }
+  }, true); // capture phase so we intercept before form submit fires
+
+  // data-action="auto-submit" on <select> elements (lang switcher):
+  // the click delegation above covers button/link clicks; for <select>
+  // we need the change event.
+  document.addEventListener('change', e => {
+    const el = e.target.closest('select[data-action="auto-submit"]');
+    if (el) el.closest('form')?.submit();
+  });
+
+  // dues/index.php month nav — <select id="duesMonthNav"> navigates on change
+  document.addEventListener('change', e => {
+    if (e.target.id === 'duesMonthNav') {
+      const base = window.BASE || '';
+      const params = new URLSearchParams(window.location.search);
+      params.set('month', e.target.value);
+      window.location.href = base + '/dues?' + params.toString();
+    }
+  });
+
+  // import/index.php — show selected filename when CSV is picked
+  document.addEventListener('change', e => {
+    if (e.target.id === 'csvFile') {
+      const file = e.target.files[0];
+      if (file) {
+        const label = document.getElementById('csvFileName');
+        if (label) label.textContent = file.name;
+        e.target.closest('form')?.submit();
+      }
+    }
+  });
 
 })();

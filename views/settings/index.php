@@ -73,7 +73,7 @@
               <div style="position:relative">
                 <input type="password" id="new_password" name="new_password"
                        class="form-control" autocomplete="new-password"
-                       oninput="checkStrength(this.value)" required>
+                       required>
                 <button type="button" class="pw-toggle" data-target="new_password"
                         style="position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;color:var(--text-hint)">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
@@ -89,7 +89,7 @@
               <label class="form-label" for="confirm_password"><?= __('settings.confirm_password') ?></label>
               <input type="password" id="confirm_password" name="confirm_password"
                      class="form-control" autocomplete="new-password"
-                     oninput="checkMatch()" required>
+                     required>
               <div id="matchHint" class="form-hint" style="min-height:16px"></div>
             </div>
           </div>
@@ -225,63 +225,4 @@
 
 </div>
 
-<script>
-// Show/hide password toggles
-document.querySelectorAll('.pw-toggle').forEach(btn => {
-  btn.addEventListener('click', function () {
-    const input = document.getElementById(this.dataset.target);
-    input.type  = input.type === 'password' ? 'text' : 'password';
-  });
-});
-
-// Password strength meter
-function checkStrength(pw) {
-  const bar   = document.getElementById('strengthBar');
-  const label = document.getElementById('strengthLabel');
-  let score = 0;
-  if (pw.length >= 8)                      score++;
-  if (pw.length >= 12)                     score++;
-  if (/[A-Z]/.test(pw))                   score++;
-  if (/[0-9]/.test(pw))                   score++;
-  if (/[^A-Za-z0-9]/.test(pw))            score++;
-
-  const levels = [
-    { pct: '0%',   color: 'var(--c-danger)',   text: '' },
-    { pct: '20%',  color: '#E24B4A',           text: <?= json_encode(__('settings.very_weak')) ?> },
-    { pct: '40%',  color: '#EF9F27',           text: <?= json_encode(__('settings.weak')) ?> },
-    { pct: '60%',  color: '#D4BF00',           text: <?= json_encode(__('settings.fair')) ?> },
-    { pct: '80%',  color: 'var(--c-primary)',  text: <?= json_encode(__('settings.strong')) ?> },
-    { pct: '100%', color: '#0F6E56',           text: <?= json_encode(__('settings.very_strong')) ?> },
-  ];
-  const l = levels[score] || levels[0];
-  bar.style.width      = l.pct;
-  bar.style.background = l.color;
-  label.textContent    = l.text;
-  checkSubmit();
-}
-
-function checkMatch() {
-  const nw   = document.getElementById('new_password').value;
-  const cn   = document.getElementById('confirm_password').value;
-  const hint = document.getElementById('matchHint');
-  if (!cn) { hint.textContent = ''; return; }
-  if (nw === cn) {
-    hint.textContent = '✓ Passwords match';
-    hint.style.color = 'var(--c-success)';
-  } else {
-    hint.textContent = 'Passwords do not match';
-    hint.style.color = 'var(--c-danger)';
-  }
-  checkSubmit();
-}
-
-function checkSubmit() {
-  const cur  = document.getElementById('current_password').value;
-  const nw   = document.getElementById('new_password').value;
-  const cn   = document.getElementById('confirm_password').value;
-  const ok   = cur.length > 0 && nw.length >= 8 && nw === cn;
-  document.getElementById('pwSubmit').disabled = !ok;
-}
-
-document.getElementById('current_password').addEventListener('input', checkSubmit);
-</script>
+<script src="<?= asset("/assets/js/settings.js") ?>"></script>

@@ -65,7 +65,7 @@
     <form action="<?= url("/import/confirm") ?>" method="POST">
       <input type="hidden" name="_csrf" value="<?= htmlspecialchars($csrf) ?>">
       <button type="submit" class="btn btn-primary"
-              onclick="return confirm('Import <?= count($valid) ?> tenant(s)? This will create tenants, assign rooms, and generate all invoices from move-in date.')">
+              data-confirm="Import <?= count($valid) ?> tenant(s)? This will create tenants, assign rooms, and generate all invoices from move-in date.">
         Confirm — import <?= count($valid) ?> tenant<?= count($valid) !== 1 ? 's' : '' ?>
       </button>
     </form>
