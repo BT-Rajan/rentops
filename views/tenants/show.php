@@ -166,7 +166,7 @@ $invMap   = ['paid'=>'success','partial'=>'warning','overdue'=>'danger','unpaid'
             ?>
             <tr>
               <td class="fw-600"><?= date('M Y', strtotime($inv['period_month'])) ?></td>
-              <td class="text-right text-sm">₹<?= number_format((float)$inv['agreed_rent']) ?></td>
+              <td class="text-right text-sm">₹<?= number_format((float)($inv['rent_amount'] ?: $inv['agreed_rent'])) ?></td>
               <td class="text-right text-sm"><?= (float)$inv['eb_units'] > 0 ? '₹' . number_format((float)$inv['eb_amount']) : '—' ?></td>
               <td class="text-right text-sm">₹<?= number_format((float)$inv['rent_gst']) ?></td>
               <td class="text-right text-sm"><?= (float)$inv['other_charges'] > 0 ? '₹' . number_format((float)$inv['other_charges']) : '—' ?></td>

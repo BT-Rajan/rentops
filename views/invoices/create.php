@@ -24,10 +24,10 @@ $gstRate = (float)($property['rent_gst_rate'] ?? 18);
               <option value="">— Select tenant —</option>
               <?php foreach ($tenants as $t): ?>
               <option value="<?= htmlspecialchars($t['tenancy_id']) ?>"
-                      data-rent="<?= (float)$t['agreed_rent'] ?>"
+                      data-rent="<?= (float)$t['effective_rent'] ?>"
                       data-room="<?= htmlspecialchars($t['room_number']) ?>">
                 Room <?= htmlspecialchars($t['room_number']) ?> — <?= htmlspecialchars($t['full_name']) ?>
-                (₹<?= number_format((float)$t['agreed_rent']) ?>/mo)
+                (₹<?= number_format((float)$t['effective_rent']) ?>/mo)
               </option>
               <?php endforeach; ?>
             </select>

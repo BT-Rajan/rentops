@@ -411,8 +411,9 @@ class RentEngine
             'id'           => UuidHelper::v4(),
             'tenancy_id'   => $tenancyId,
             'period_month' => $period->format('Y-m-d'),
-            'amount_due'   => max(0, $amount),   // never negative
+            'amount_due'   => max(0, $amount),
             'amount_paid'  => 0,
+            'rent_amount'  => max(0, $amount), // bulk generator: amount IS the rent (no EB/GST/other yet)
             'overpayment'  => 0,
             'due_date'     => $dueDate,
             'status'       => 'unpaid',

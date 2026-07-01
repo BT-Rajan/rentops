@@ -31,7 +31,8 @@ class InvoiceController extends BaseController
         $whereSql = $where ? ('WHERE ' . implode(' AND ', $where)) : '';
 
         $invoices = DB::rows("
-            SELECT ri.*, t.id AS tenant_id, t.full_name, r.room_number, te.agreed_rent
+            SELECT ri.*, t.id AS tenant_id, t.full_name, r.room_number, te.agreed_rent,
+                   COALESCE(NULLIF(ri.rent_amount,0), te.agreed_rent) AS display_rent
             FROM rent_invoices ri
             JOIN tenancies te ON te.id = ri.tenancy_id
             JOIN tenants t    ON t.id  = te.tenant_id
@@ -122,15 +123,29 @@ class InvoiceController extends BaseController
 
     public function create(array $params = []): void
     {
+        $month = date('Y-m');
+
+        // Resolve effective rent for each active tenancy so the JS preview
+        // matches what store() will actually bill. A plain te.agreed_rent
+        // would show stale numbers for tenants who had a rent adjustment.
         $tenants = DB::rows("
             SELECT t.id, t.full_name, t.phone, r.room_number,
-                   te.id AS tenancy_id, te.agreed_rent, te.rent_due_day
+                   te.id AS tenancy_id, te.agreed_rent, te.rent_due_day,
+                   COALESCE(
+                       (SELECT rc.new_rent
+                        FROM rent_changes rc
+                        WHERE rc.tenancy_id = te.id
+                          AND DATE_FORMAT(rc.effective_from, '%Y-%m') <= :month
+                        ORDER BY rc.effective_from DESC
+                        LIMIT 1),
+                       te.agreed_rent
+                   ) AS effective_rent
             FROM tenants t
             JOIN tenancies te ON te.tenant_id = t.id AND te.status = 'active'
             JOIN rooms r      ON r.id = te.room_id
             WHERE t.status = 'active'
             ORDER BY r.room_number, t.full_name
-        ");
+        ", ['month' => $month]);
 
         $property = DB::row('SELECT * FROM properties LIMIT 1');
 
@@ -211,6 +226,7 @@ class InvoiceController extends BaseController
             $invoiceId = $existing['id'];
             DB::update('rent_invoices', [
                 'amount_due'          => $totalDue,
+                'rent_amount'         => $rent,
                 'status'              => $newStatus,
                 'eb_units'            => $ebUnits,
                 'eb_amount'           => $ebAmount,
@@ -227,6 +243,7 @@ class InvoiceController extends BaseController
                 'period_month'        => $period,
                 'amount_due'          => $totalDue,
                 'amount_paid'         => 0,
+                'rent_amount'         => $rent,
                 'overpayment'         => 0,
                 'due_date'            => $dueDate,
                 'status'              => $newStatus,

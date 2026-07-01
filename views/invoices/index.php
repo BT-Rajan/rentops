@@ -129,7 +129,7 @@ $balance   = $totalDue - $totalPaid;
             </a>
           </td>
           <td class="text-sm text-muted">Room <?= htmlspecialchars($inv['room_number']) ?></td>
-          <td class="text-right text-sm">₹<?= number_format((float)$inv['agreed_rent']) ?></td>
+          <td class="text-right text-sm">₹<?= number_format((float)($inv['display_rent'] ?? $inv['rent_amount'] ?? $inv['agreed_rent'])) ?></td>
           <td class="text-right text-sm"><?= (float)$inv['eb_units'] > 0 ? '₹'.number_format((float)$inv['eb_amount']) : '—' ?></td>
           <td class="text-right text-sm">₹<?= number_format((float)$inv['rent_gst']) ?></td>
           <td class="text-right text-sm"><?= (float)$inv['other_charges'] > 0 ? '₹'.number_format((float)$inv['other_charges']) : '—' ?></td>
